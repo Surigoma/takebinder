@@ -937,9 +937,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:43.3.0":
-  version: 43.3.0
-  resolution: "electron@npm:43.3.0"
+"electron@npm:43.7.5":
+  version: 43.7.5
+  resolution: "electron@npm:43.7.5"
   dependencies:
     "@electron-internal/extract-zip": "npm:^1.0.1"
     "@electron/get": "npm:^5.0.0"
@@ -947,7 +947,7 @@ __metadata:
   bin:
     electron: cli.js
     install-electron: install.js
-  checksum: 10c0/1fb3aeee44e23a55e3e25a7fef0bdc177d209a0fe73af9e8dab478c9953db16f4274125b9054fbc2a7b8f2e6c9ab1eefe90967bc9d56754db5b0f2b97d854c70
+  checksum: 10c0/4f2e3070c0b791a752c21334b7264f29b1ff9f218fac822b67ffdaa4ee964e394ea502858947ec14b705e495ebcf07fcc09e7304ed9c1a8b808c701416a0a90e
   languageName: node
   linkType: hard
 
@@ -1659,7 +1659,7 @@ __metadata:
     "@mui/material": "npm:9.2.0"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
-    electron: "npm:43.3.0"
+    electron: "npm:43.7.5"
     i18next: "npm:26.3.6"
     react: "npm:19.2.7"
     react-dom: "npm:19.2.7"
@@ -1849,16 +1849,16 @@ __metadata:
   linkType: hard
 
 "undici@npm:^7.24.4":
-  version: 7.29.0
-  resolution: "undici@npm:7.29.0"
-  checksum: 10c0/85ea96e91e7f3de24de678cbbc54230fdd641a3b0643005f2aef044af1f1a2db8fbecb88b28e6fa78bb41ffeafda4479b57075b6b6ab92beac4b7b5ab53f9b10
+  version: 7.29.1
+  resolution: "undici@npm:7.29.1"
+  checksum: 10c0/5a419b1364531071ebdfd93748f7f2392d4eb6d68dd99814e1020f8fc6a517e3298129004c871516ee204bac68aba93541f587200b04a7449b8d45683a7d86f6
   languageName: node
   linkType: hard
 
 "undici@npm:^8.4.1":
-  version: 8.9.0
-  resolution: "undici@npm:8.9.0"
-  checksum: 10c0/e3d9fa35a9aa8360d9f56e66bd372f451ee053e25066a97fd9fab3816267035660f67870c6d709a58a5411551657af78c4475be5b31c113b04f70251309900d0
+  version: 8.11.2
+  resolution: "undici@npm:8.11.2"
+  checksum: 10c0/106f6991178fb7562fd90cdec7993c5f807a9428682306091f0c4b27fc474ec291f868e29972c6252988bf061ad193df943b3b99e775be157a28d92bbb95699d
   languageName: node
   linkType: hard
 
