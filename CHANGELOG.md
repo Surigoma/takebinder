@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/Surigoma/takebinder/compare/v0.2.0...v0.2.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** update source-map-js to 1.2.2 for GHSA-68fv-2mgg-jv7q ([8e5641a](https://github.com/Surigoma/takebinder/commit/8e5641a4315704c19cdb1bcb05a655d82ee2d83a))
+* **deps:** update source-map-js to 1.2.2 for GHSA-68fv-2mgg-jv7q ([85e0a60](https://github.com/Surigoma/takebinder/commit/85e0a6094335fcb12d037aa5159033a9c2d6039d))
+
 ## [0.2.0](https://github.com/Surigoma/takebinder/compare/v0.1.0...v0.2.0) (2026-10-01)
 
 
