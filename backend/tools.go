@@ -111,6 +111,13 @@ func currentToolStatus(name string) toolInstallResult {
 	return toolInstallResult{Available: err == nil, Removable: removable, Path: path, Version: asset.Version, ExpectedSHA256: asset.SHA256}
 }
 
+func currentToolsStatus() map[string]toolInstallResult {
+	return map[string]toolInstallResult{
+		"ffmpeg":  currentToolStatus("ffmpeg"),
+		"ffprobe": currentToolStatus("ffprobe"),
+	}
+}
+
 func (a *app) handleInstallTools(requestID string) {
 	if !a.toolsMu.TryLock() {
 		a.emitError(requestID, "E_TOOLS_BUSY", errors.New("media tools are in use or being changed"))
@@ -120,10 +127,7 @@ func (a *app) handleInstallTools(requestID string) {
 		defer a.toolsMu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
-		result := map[string]toolInstallResult{
-			"ffprobe": currentToolStatus("ffprobe"),
-			"ffmpeg":  currentToolStatus("ffmpeg"),
-		}
+		result := currentToolsStatus()
 		for _, name := range []string{"ffmpeg", "ffprobe"} {
 			if result[name].Available {
 				continue
@@ -194,9 +198,7 @@ func (a *app) handleRemoveTools(msg message) {
 		a.handleStatus(msg.RequestID)
 		return
 	}
-	a.emit(msg.RequestID, "tools.remove.completed", map[string]any{"tools": map[string]toolInstallResult{
-		"ffmpeg": currentToolStatus("ffmpeg"), "ffprobe": currentToolStatus("ffprobe"),
-	}})
+	a.emit(msg.RequestID, "tools.remove.completed", map[string]any{"tools": currentToolsStatus()})
 }
 
 func (a *app) downloadProgress(requestID string) func(tool string, downloaded, total int64) {

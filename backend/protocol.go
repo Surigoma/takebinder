@@ -49,10 +49,7 @@ func (a *app) handleStatus(requestID string) {
 		"version": appVersion,
 		"os":      runtime.GOOS,
 		"arch":    runtime.GOARCH,
-		"tools": map[string]any{
-			"ffmpeg":  currentToolStatus("ffmpeg"),
-			"ffprobe": currentToolStatus("ffprobe"),
-		},
+		"tools":   currentToolsStatus(),
 	})
 }
 

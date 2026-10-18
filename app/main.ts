@@ -4,13 +4,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
+import { isBackendCommand, type BackendEvent } from "./types";
 
-type BackendMessage = {
-  protocolVersion: "1";
-  requestId: string;
-  type: string;
-  payload: unknown;
-};
+type BackendMessage = BackendEvent & { protocolVersion: "1" };
 
 let window: BrowserWindow | null = null;
 let backend: ChildProcessWithoutNullStreams | null = null;
@@ -67,12 +63,6 @@ function startBackend(): ChildProcessWithoutNullStreams {
     backend = null;
   });
   return backend;
-}
-
-function isCommand(value: unknown): value is { type: string; payload: unknown } {
-  if (!value || typeof value !== "object") return false;
-  const command = value as Record<string, unknown>;
-  return typeof command.type === "string" && ["status", "install-tools", "remove-tools", "scan", "run", "cancel"].includes(command.type);
 }
 
 async function createWindow(): Promise<void> {
@@ -146,7 +136,7 @@ ipcMain.handle("path:directory", (event, candidate: unknown) => {
 
 ipcMain.handle("backend:command", (event, command: unknown) => {
   if (event.sender !== window?.webContents) throw new Error("Untrusted IPC sender");
-  if (!isCommand(command)) throw new Error("Invalid backend command");
+  if (!isBackendCommand(command)) throw new Error("Invalid backend command");
   const requestId = randomUUID();
   const message: BackendMessage = { protocolVersion: "1", requestId, type: command.type, payload: command.payload };
   startBackend().stdin.write(`${JSON.stringify(message)}\n`);
