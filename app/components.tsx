@@ -1,5 +1,5 @@
 import {
-  Box, Button, Chip, CircularProgress, Divider, FormControlLabel, LinearProgress, MenuItem,
+  Alert, Box, Button, Chip, CircularProgress, Divider, FormControlLabel, LinearProgress, MenuItem,
   Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Switch, TextField, Typography
 } from "@mui/material";
@@ -109,11 +109,12 @@ export function ToolsPanel({ t, tools, installing, onInstall }: { t: Translate; 
 export function GroupsPanel({ t, groups, readyCount }: { t: Translate; groups: Group[]; readyCount: number }) {
   return <Paper sx={{ overflow: "hidden" }}>
     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", p: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("captureGroups")}</Typography><Chip label={t("groupSummary", { total: groups.length, ready: readyCount })} /></Stack>
+    {groups.some((group) => group.basis === "DJI file copy") && <Alert severity="info" sx={{ mx: 2.5, mb: 2 }}>{t("djiCopyNotice")}</Alert>}
     <TableContainer sx={{ maxHeight: 430 }}><Table stickyHeader size="small">
       <TableHead><TableRow><TableCell>{t("outputName")}</TableCell><TableCell>{t("chapters")}</TableCell><TableCell>{t("size")}</TableCell><TableCell>{t("status")}</TableCell><TableCell>{t("videoInfo")}</TableCell><TableCell>{t("progress")}</TableCell></TableRow></TableHead>
       <TableBody>{groups.length === 0
         ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>{t("emptyGroups")}</TableCell></TableRow>
-        : groups.map((group) => <TableRow key={group.id} hover><TableCell>{group.outputName}</TableCell><TableCell>{group.files.length}</TableCell><TableCell>{formatBytes(group.files.reduce((sum, file) => sum + file.size, 0))}</TableCell><TableCell><Stack spacing={0.5} sx={{ alignItems: "flex-start" }}><Chip size="small" label={group.status === "ready" ? t("ready") : group.reason ?? t("review")} color={group.status === "ready" ? "success" : "warning"} /><Typography variant="caption" color="text.secondary">{group.hasGpmf ? t("gpmfYes") : t("gpmfNo")} / {confidenceLabel(group.confidence, t)} / {group.basis === "GoProファイル名規則" ? t("basisFilename") : group.basis}</Typography></Stack></TableCell><TableCell sx={{ whiteSpace: "nowrap" }}>{formatVideoInfo(group, t)}</TableCell><TableCell><ProgressCell group={group} t={t} /></TableCell></TableRow>)}</TableBody>
+        : groups.map((group) => <TableRow key={group.id} hover><TableCell>{group.outputName}</TableCell><TableCell>{group.files.length}</TableCell><TableCell>{formatBytes(group.files.reduce((sum, file) => sum + file.size, 0))}</TableCell><TableCell><Stack spacing={0.5} sx={{ alignItems: "flex-start" }}><Chip size="small" label={group.status === "ready" ? t(group.basis === "DJI file copy" ? "copyOnly" : "ready") : group.reason ?? t("review")} color={group.status === "ready" ? "success" : "warning"} /><Typography variant="caption" color="text.secondary">{group.hasGpmf ? t("gpmfYes") : t("gpmfNo")} / {confidenceLabel(group.confidence, t)} / {group.basis === "GoProファイル名規則" ? t("basisFilename") : group.basis === "DJI file copy" ? t("basisDjiCopy") : group.basis}</Typography></Stack></TableCell><TableCell sx={{ whiteSpace: "nowrap" }}>{formatVideoInfo(group, t)}</TableCell><TableCell><ProgressCell group={group} t={t} /></TableCell></TableRow>)}</TableBody>
     </Table></TableContainer>
   </Paper>;
 }

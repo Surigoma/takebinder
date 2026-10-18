@@ -1,5 +1,7 @@
 # TakeBinder
 
+Osmo Pocket / DJI候補のMP4をファイル単位でコピー・日付整理する試験対応を追加しています。**DJIの分割録画は自動結合しません。** ファイル名だけでは機種を確定できず、Pocket実素材での検証も未実施です。[対応範囲・調査結果](docs/osmo-pocket-support.md)を参照してください。
+
 [English](README.md)
 
 TakeBinderは、GoProが分割保存したチャプターファイルを1回の撮影につき1本のMP4へまとめ、分かりやすいフォルダへ整理するアプリです。映像と音声を再エンコードせず、Gyroflowなどが利用するGoPro GPMFテレメトリも保持します。

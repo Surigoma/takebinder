@@ -125,7 +125,7 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 			return nil
 		}
 		classification, hasGPMF := classifyMedia(probe, entry.Name())
-		if classification != "gopro-gpmf" {
+		if classification != "gopro-gpmf" && !isDJIClassification(classification) {
 			reason := "E_NOT_GOPRO"
 			if classification == "gopro-no-gpmf" {
 				reason = "E_GPMF_MISSING"
@@ -134,6 +134,10 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 			return nil
 		}
 		key, chapter, basis, confidence, ok := groupingIdentity(probe, entry.Name())
+		if isDJIClassification(classification) {
+			key, chapter, basis, confidence = djiFileIdentity(path)
+			ok = true
+		}
 		if !ok {
 			skipped = append(skipped, skippedFile{Path: path, Reason: "E_GROUP_AMBIGUOUS", Classification: classification})
 			return nil
@@ -178,9 +182,13 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 		} else if relativeDir == "." {
 			relativeDir = ""
 		}
+		groupHasGPMF := true
+		for _, file := range files {
+			groupHasGPMF = groupHasGPMF && file.HasGPMF
+		}
 		groups = append(groups, group{
 			ID: shortID(key), Key: key, Files: files, Status: status, Confidence: candidates[0].confidence,
-			Basis: candidates[0].basis, HasGPMF: true, Reason: reason, OutputName: outputName, RelativeDir: relativeDir,
+			Basis: candidates[0].basis, HasGPMF: groupHasGPMF, Reason: reason, OutputName: outputName, RelativeDir: relativeDir,
 		})
 	}
 	sort.Slice(groups, func(i, j int) bool { return groups[i].Files[0].Path < groups[j].Files[0].Path })
@@ -258,6 +266,9 @@ func validateOutputNameFormat(format string) (string, error) {
 
 func classifyMedia(probe probeResult, name string) (string, bool) {
 	gpmf := hasGPMF(probe)
+	if classification := djiClassification(probe, name); classification != "" {
+		return classification, gpmf
+	}
 	_, _, goProName := parseGoProName(name)
 	goPro := goProName && gpmf
 	for _, tags := range append([]map[string]string{probe.Format.Tags}, streamTags(probe)...) {

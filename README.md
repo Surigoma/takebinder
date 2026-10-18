@@ -6,6 +6,8 @@ TakeBinder joins the chapter files created by a GoPro into one MP4 per recording
 
 See the [changelog](CHANGELOG.md) for release history.
 
+Experimental Osmo Pocket / DJI discovery supports copying and date-based organization of individual MP4 files. **DJI split recordings are not automatically joined.** Filename candidates cannot confirm the camera model; real Pocket footage has not yet been validated. See [support scope and research](docs/osmo-pocket-support.md).
+
 ## Highlights
 
 - Automatically finds and orders chapters from the same recording.

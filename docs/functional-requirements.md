@@ -19,9 +19,12 @@
 3. Each result is classified as one of the following:
    - GoPro video with GPMF
    - GoPro video without GPMF
+   - Osmo Pocket identified by model metadata (`osmo-pocket`, copy only)
+   - DJI candidate identified by manufacturer or filename hints (`dji-candidate`, copy only)
    - Non-GoPro MP4
    - Corrupt or unreadable
-4. Only GoPro videos are processed by default; other files are skipped with a displayed reason.
+4. GoPro videos with GPMF are processed by default. Experimental Osmo Pocket / DJI discovery also supports copying and organizing each MP4 independently; DJI recordings are never automatically joined. Other files are skipped with a displayed reason.
+5. DJI model metadata or filename hints produce `osmo-pocket` or `dji-candidate` respectively. Filename hints do not establish the camera model or recording boundaries. See [Osmo Pocket / DJI support](osmo-pocket-support.md) for matching rules, sources, and unverified behavior.
 
 ## FR-03 Capture-group detection
 
@@ -32,6 +35,8 @@ Capture groups are determined using the following sources in descending order of
 3. Supporting evidence from camera model, codec, resolution, frame rate, creation time, and continuity
 
 If different captures might be joined incorrectly, the group is marked as requiring review and is not joined automatically. When a filename-only heuristic is uncertain, the UI displays its basis and confidence.
+
+DJI candidates are represented as independent file-copy units with low confidence and basis `DJI file copy`, even when generic Capture ID/Chapter tags exist. The UI identifies them as copy-only rather than verified capture groups. Multi-file DJI units are rejected with `E_GROUP_AMBIGUOUS`.
 
 ## FR-04 Chapter order
 

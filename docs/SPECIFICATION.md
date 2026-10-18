@@ -13,6 +13,7 @@ The specification is split by subject. Use this file as the entry point and upda
 | --- | --- |
 | [Product overview](product.md) | Goals, terminology, scope, UI, and open questions |
 | [Functional requirements](functional-requirements.md) | Scanning, classification, joining, concurrency, output, and errors |
+| [Osmo Pocket / DJI support](osmo-pocket-support.md) | Research sources, experimental individual-file copying, and validation gates for future joining |
 | [Architecture](architecture.md) | Electron, Go backend, external tools, and communication protocol |
 | [Quality and testing](quality-and-testing.md) | Non-functional requirements, acceptance criteria, testing, and implementation phases |
 | [Releasing](releasing.md) | Version tags, release validation, artifacts, and current signing limitations |
