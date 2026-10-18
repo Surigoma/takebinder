@@ -78,6 +78,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/runtime@npm:^7.29.7":
+  version: 7.29.10
+  resolution: "@babel/runtime@npm:7.29.10"
+  checksum: 10c0/32f975da8e9c2cae6b33e1a477f8fe8bbff6722c982b5ce35f99affaf3a7a1b612c8272b43afa0e51d3000928d6f3ba38f9296301115db5640264907c027b0cd
+  languageName: node
+  linkType: hard
+
 "@babel/template@npm:^7.29.7":
   version: 7.29.7
   resolution: "@babel/template@npm:7.29.7"
@@ -1005,12 +1012,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"html-parse-stringify@npm:^3.0.1":
-  version: 3.1.0
-  resolution: "html-parse-stringify@npm:3.1.0"
-  dependencies:
-    void-elements: "npm:3.1.0"
-  checksum: 10c0/c6e43cb60c012da41a26cc6403708c1d278e91fcd21d80ef61cc090ad24719ad4e591b2591df7e45cb9a646069f03f28a3e8553cb8f0c274c698cb3b39416a3d
+"html-parse-stringify@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "html-parse-stringify@npm:4.0.1"
+  checksum: 10c0/8d7267acbc8b70a50096176e28ba491af89fb31613b6a062bce4b8201b2703fd652bedfbe0db6efe90145379c89524a3319b1b58b8c96a72779b0f49e4c2c180
   languageName: node
   linkType: hard
 
@@ -1386,12 +1391,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-i18next@npm:17.0.10":
-  version: 17.0.10
-  resolution: "react-i18next@npm:17.0.10"
+"react-i18next@npm:17.0.16":
+  version: 17.0.16
+  resolution: "react-i18next@npm:17.0.16"
   dependencies:
-    "@babel/runtime": "npm:^7.29.2"
-    html-parse-stringify: "npm:^3.0.1"
+    "@babel/runtime": "npm:^7.29.7"
+    html-parse-stringify: "npm:^4.0.1"
     use-sync-external-store: "npm:^1.6.0"
   peerDependencies:
     i18next: ">= 26.2.0"
@@ -1404,7 +1409,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/0ec5dea59e4b136c026136334bf0d1eccc445db173b07d4ccefd2ce842db95bd64ae7e90809041c9022e31060fdb8eb3f6529b8ddd394bed84e5edaeb9d4ab52
+  checksum: 10c0/4e5e1b6a79228532fb51140fbbb26d019fe48d0d600213b81ece5d66c4d3b99b94cf97c54cd6c49bb4af6ff8504baa8327397f9ddf264455ad3fa6ea114cffa2
   languageName: node
   linkType: hard
 
@@ -1600,7 +1605,7 @@ __metadata:
     i18next: "npm:26.3.6"
     react: "npm:19.2.8"
     react-dom: "npm:19.2.8"
-    react-i18next: "npm:17.0.10"
+    react-i18next: "npm:17.0.16"
     typescript: "npm:7.0.2"
     vite: "npm:8.2.1"
   languageName: unknown
@@ -1855,13 +1860,6 @@ __metadata:
   bin:
     vite: bin/vite.js
   checksum: 10c0/e958dd07502deeb552f04dba59418ff1eb63183add416fd7a3e3badabf5d36edc6834b94c916f9f9233f976bb1671e3e9989d90e869059af07b0d43f7fc078c2
-  languageName: node
-  linkType: hard
-
-"void-elements@npm:3.1.0":
-  version: 3.1.0
-  resolution: "void-elements@npm:3.1.0"
-  checksum: 10c0/0b8686f9f9aa44012e9bd5eabf287ae0cde409b9a2854c5a2335cb83920c957668ac5876e3f0d158dd424744ac411a7270e64128556b451ed3bec875ef18534d
   languageName: node
   linkType: hard
 
