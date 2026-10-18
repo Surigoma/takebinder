@@ -86,6 +86,7 @@ When date directories and original copying are enabled, completed videos and sou
 - Compare SHA-256 for every input/output packet and verify GPMF keys, time ranges, packet counts, and payloads.
 - Test output in major downstream applications such as Gyroflow on physical systems.
 - Build in Windows, macOS, and Linux CI and run smoke tests on each OS.
+- Run full CI for pull requests and release builds. Do not duplicate ordinary CI after merging to `main`; require up-to-date PR status checks through branch protection. Keep the main-push Release Please job for release orchestration.
 - On every CI OS, assemble the Electron runtime, UI, and same-OS Go backend in a distribution directory, then launch the packaged application with `--smoke-test`.
 - Test thousands of files, long recordings, low disk space, cancellation, and abnormal termination.
 - Detect `package.json`/lockfile inconsistencies, unapproved install-time scripts, and high/critical vulnerabilities in CI.

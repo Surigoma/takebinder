@@ -86,6 +86,7 @@ lockfileとmanifestが不整合な場合にCIが失敗し、依存のinstall-tim
 - 入出力の全パケットSHA-256を比較し、GPMFのキー、時間範囲、パケット数、payloadを照合する。
 - Gyroflowなど主要な後工程アプリで出力を読み込む実機試験を行う。
 - Windows、macOS、LinuxのCIでビルドし、各OSでスモークテストする。
+- 全体CIはPRとリリースビルドで実行する。`main`へのマージ後には通常CIを重複実行せず、ブランチ保護で最新ベースに対するPR必須チェックを要求する。リリース制御用のmain-push時のRelease Pleaseは維持する。
 - CIの各OS上でElectronランタイム、UI、同一OS向けGoバックエンドを配布ディレクトリへ組み立て、パッケージ済みアプリを `--smoke-test` で起動する。
 - 数千ファイル、長時間動画、低空き容量、キャンセル、異常終了を試験する。
 - `package.json` とlockfileの不整合、未承認install-timeスクリプト、high/critical脆弱性をCIで検出する。
