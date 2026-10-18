@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/Surigoma/takebinder/compare/v0.2.1...v0.3.0) (2026-10-18)
+
+
+### Features
+
+* add experimental Osmo Pocket file organization ([5b31d7e](https://github.com/Surigoma/takebinder/commit/5b31d7ef9143f98022a1f35e8e5512da07c3d09b))
+* add experimental Pocket organization and media tool removal ([360a2e2](https://github.com/Surigoma/takebinder/commit/360a2e2241b0e848169599110fe86a382609a8ee))
+* allow removal of downloaded media tools ([9b04bd4](https://github.com/Surigoma/takebinder/commit/9b04bd4456c72547a28bb8836ab795d0e458f3b2))
+
 ## [0.2.1](https://github.com/Surigoma/takebinder/compare/v0.2.0...v0.2.1) (2026-10-16)
 
 
