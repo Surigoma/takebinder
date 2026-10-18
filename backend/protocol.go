@@ -29,6 +29,8 @@ func (a *app) serve(r io.Reader) error {
 			a.handleStatus(msg.RequestID)
 		case "install-tools":
 			a.handleInstallTools(msg.RequestID)
+		case "remove-tools":
+			a.handleRemoveTools(msg)
 		case "scan":
 			a.handleScan(msg)
 		case "run":
@@ -55,6 +57,11 @@ func (a *app) handleStatus(requestID string) {
 }
 
 func (a *app) handleScan(msg message) {
+	if !a.toolsMu.TryRLock() {
+		a.emitError(msg.RequestID, "E_TOOLS_BUSY", errors.New("media tools are being changed"))
+		return
+	}
+	defer a.toolsMu.RUnlock()
 	var req scanRequest
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
 		a.emitError(msg.RequestID, "E_BAD_REQUEST", err)
@@ -117,9 +124,14 @@ func (a *app) handleRun(msg message) {
 		req.MaxParallel = 8
 	}
 
+	if !a.toolsMu.TryRLock() {
+		a.emitError(msg.RequestID, "E_TOOLS_BUSY", errors.New("media tools are being changed"))
+		return
+	}
 	a.runMu.Lock()
 	if a.cancelRun != nil {
 		a.runMu.Unlock()
+		a.toolsMu.RUnlock()
 		a.emitError(msg.RequestID, "E_RUN_ACTIVE", errors.New("another run is active"))
 		return
 	}
@@ -131,6 +143,7 @@ func (a *app) handleRun(msg message) {
 	a.runMu.Unlock()
 
 	go func() {
+		defer a.toolsMu.RUnlock()
 		defer func() {
 			a.runMu.Lock()
 			a.cancelRun = nil

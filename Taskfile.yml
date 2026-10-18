@@ -44,6 +44,12 @@ tasks:
     cmds:
       - node scripts/test-pocket-ui.cjs
 
+  test:tools-ui:
+    desc: Verify media tool removal and re-download UI (run install:electron first)
+    deps: [build:ui]
+    cmds:
+      - node scripts/test-tools-ui.cjs
+
   test:media-matrix:
     deps: [build:backend]
     cmds:

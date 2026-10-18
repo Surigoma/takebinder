@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ type toolAsset struct {
 
 type toolInstallResult struct {
 	Available      bool   `json:"available"`
+	Removable      bool   `json:"removable"`
 	Path           string `json:"path,omitempty"`
 	Version        string `json:"version,omitempty"`
 	ExpectedSHA256 string `json:"expectedSha256,omitempty"`
@@ -101,11 +103,21 @@ func toolAssetFor(name string) (toolAsset, bool) {
 func currentToolStatus(name string) toolInstallResult {
 	path, err := findTool(name)
 	asset, _ := toolAssetFor(name)
-	return toolInstallResult{Available: err == nil, Path: path, Version: asset.Version, ExpectedSHA256: asset.SHA256}
+	removable := false
+	if dir := managedToolsDir(); dir != "" {
+		_, statErr := os.Lstat(filepath.Join(dir, name))
+		removable = statErr == nil
+	}
+	return toolInstallResult{Available: err == nil, Removable: removable, Path: path, Version: asset.Version, ExpectedSHA256: asset.SHA256}
 }
 
 func (a *app) handleInstallTools(requestID string) {
+	if !a.toolsMu.TryLock() {
+		a.emitError(requestID, "E_TOOLS_BUSY", errors.New("media tools are in use or being changed"))
+		return
+	}
 	go func() {
+		defer a.toolsMu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 		result := map[string]toolInstallResult{
@@ -130,10 +142,61 @@ func (a *app) handleInstallTools(requestID string) {
 				a.emitError(requestID, "E_TOOL_INVALID", fmt.Errorf("downloaded %s failed its version check: %w: %s", name, err, strings.TrimSpace(string(output))))
 				return
 			}
-			result[name] = toolInstallResult{Available: true, Path: path, Version: asset.Version, ExpectedSHA256: asset.SHA256}
+			result[name] = toolInstallResult{Available: true, Removable: true, Path: path, Version: asset.Version, ExpectedSHA256: asset.SHA256}
 		}
 		a.emit(requestID, "tools.install.completed", map[string]any{"tools": result})
 	}()
+}
+
+func removeManagedTools() error {
+	dir := managedToolsDir()
+	if dir == "" {
+		return errors.New("managed tools directory is not configured")
+	}
+	// Root confines traversal to application-managed storage, including if a
+	// version directory is a symlink. Only these two reserved names are removed;
+	// PATH tools and arbitrary paths from IPC are never deletion targets.
+	root, err := os.OpenRoot(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	var failures []error
+	for _, name := range []string{"ffmpeg", "ffprobe"} {
+		if err := root.RemoveAll(name); err != nil {
+			failures = append(failures, fmt.Errorf("remove managed %s: %w", name, err))
+		}
+	}
+	return errors.Join(failures...)
+}
+
+func (a *app) handleRemoveTools(msg message) {
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(msg.Payload, &payload); err != nil || payload == nil || len(payload) != 0 {
+		a.emitError(msg.RequestID, "E_BAD_REQUEST", errors.New("remove-tools requires an empty object; paths are not accepted"))
+		return
+	}
+	if !a.toolsMu.TryLock() {
+		a.emitError(msg.RequestID, "E_TOOLS_BUSY", errors.New("media tools are in use or being changed"))
+		return
+	}
+	defer a.toolsMu.Unlock()
+	err := removeManagedTools()
+	// A partial removal also invalidates the plan and requires fresh tool status.
+	a.planMu.Lock()
+	a.plan = nil
+	a.planMu.Unlock()
+	if err != nil {
+		a.emitError(msg.RequestID, "E_TOOL_REMOVE", err)
+		a.handleStatus(msg.RequestID)
+		return
+	}
+	a.emit(msg.RequestID, "tools.remove.completed", map[string]any{"tools": map[string]toolInstallResult{
+		"ffmpeg": currentToolStatus("ffmpeg"), "ffprobe": currentToolStatus("ffprobe"),
+	}})
 }
 
 func (a *app) downloadProgress(requestID string) func(tool string, downloaded, total int64) {

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 
-type Command = { type: "status" | "install-tools" | "scan" | "run" | "cancel"; payload: unknown };
+type Command = { type: "status" | "install-tools" | "remove-tools" | "scan" | "run" | "cancel"; payload: unknown };
 type BackendEvent = { protocolVersion: string; requestId: string; type: string; payload: unknown };
 
 contextBridge.exposeInMainWorld("takeBinder", {

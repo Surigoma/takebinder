@@ -73,6 +73,7 @@ ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffpro
 | `cancel` | 実行中の処理を停止する |
 | `status` | バックエンドと同梱ツールの状態を返す |
 | `install-tools` | 固定manifestに含まれる外部ツールを取得・検証する |
+| `remove-tools` | 管理領域内の取得済みツールだけを削除する。入力は `{}` のみ |
 
 ### 5.2 イベント
 
@@ -88,8 +89,11 @@ ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffpro
 | `run.completed` | 全体処理終了 |
 | `tools.install.progress` | ツール取得のバイト進捗 |
 | `tools.install.completed` | FFmpegとffprobeの取得結果 |
+| `tools.remove.completed` | 削除成功と最新の `tools` 状態 |
 
 各メッセージは `protocolVersion`、`requestId`、`type`、`payload` を持つ。
+
+ツール状態の `available` と `removable` は独立している。管理版を削除してもPATH上のツールは利用可能で、破損した管理版や旧版も削除可能とする。バックエンドの読み書きロックで解析・処理中のツール変更を防ぎ、取得・削除を相互排他にする。削除は `os.Root` で管理領域内の専用ツリーへ限定し、走査計画を破棄する。失敗は `E_TOOLS_BUSY` / `E_TOOL_REMOVE` とし、削除失敗後には最新の `status.completed` を返す。
 
 ## 6. ソフトウェア・サプライチェーン保護
 

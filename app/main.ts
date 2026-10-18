@@ -72,7 +72,7 @@ function startBackend(): ChildProcessWithoutNullStreams {
 function isCommand(value: unknown): value is { type: string; payload: unknown } {
   if (!value || typeof value !== "object") return false;
   const command = value as Record<string, unknown>;
-  return typeof command.type === "string" && ["status", "install-tools", "scan", "run", "cancel"].includes(command.type);
+  return typeof command.type === "string" && ["status", "install-tools", "remove-tools", "scan", "run", "cancel"].includes(command.type);
 }
 
 async function createWindow(): Promise<void> {

@@ -73,6 +73,7 @@ Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, 
 | `cancel` | Stop current processing |
 | `status` | Return backend and managed-tool status |
 | `install-tools` | Download and verify tools from the pinned manifest |
+| `remove-tools` | Remove only downloaded tool trees from managed storage; payload must be `{}` |
 
 ### 5.2 Events
 
@@ -88,8 +89,11 @@ Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, 
 | `run.completed` | All processing finished |
 | `tools.install.progress` | Tool-download byte progress |
 | `tools.install.completed` | FFmpeg and ffprobe download results |
+| `tools.remove.completed` | Removal succeeded; payload contains refreshed `tools` status |
 
 Every message contains `protocolVersion`, `requestId`, `type`, and `payload`.
+
+Tool status includes `available` and `removable` independently: an external PATH tool can be available after managed deletion, and a corrupt or old managed installation can still be removable. A backend read/write mutex prevents tool mutation during scans/runs and serializes installation/removal. Removal uses `os.Root` to confine deletion to the reserved tool trees and invalidates the scan plan. Errors use `E_TOOLS_BUSY` or `E_TOOL_REMOVE`; removal failure is followed by refreshed `status.completed`.
 
 ## 6. Software supply-chain protection
 

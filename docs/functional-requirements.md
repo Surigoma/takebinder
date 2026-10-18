@@ -153,6 +153,8 @@ Report generation is enabled by default and can be disabled in Settings. When en
 | `E_OUTPUT_EXISTS` | Output name collision | Choose a safe numbered name |
 | `E_DISK_FULL` | Insufficient free space | Stop new jobs and report the error |
 | `E_CANCELLED` | User cancellation | Do not treat temporary output as complete |
+| `E_TOOLS_BUSY` | Tools are in use or being changed | Reject install/removal and retry after activity finishes |
+| `E_TOOL_REMOVE` | Managed tools cannot be fully removed | Report failure and refresh status |
 
 ## FR-13 External-tool download
 
@@ -162,6 +164,9 @@ Report generation is enabled by default and can be disabled in Settings. When en
 4. A file with a mismatched size or SHA-256 hash is not used and its temporary file is deleted.
 5. Tools in application-managed storage take priority.
 6. A tool becomes available only after its `-version` command succeeds. Installers and package managers are never executed.
+7. Settings offers removal of downloaded FFmpeg and ffprobe after confirmation. Remove only the reserved `ffmpeg` and `ffprobe` trees within application-managed tool storage, including old versions and partial downloads. Never delete PATH-installed tools, input/output videos, or other storage entries. Constrain filesystem traversal to the managed root, including symbolic links.
+8. Tool installation and removal are mutually exclusive and cannot overlap scanning or processing. Reject conflicting requests with `E_TOOLS_BUSY`; disable these actions in the UI while busy. `remove-tools` accepts only an empty object, never paths, and emits `tools.remove.completed` with refreshed tool status. The status field `removable` indicates whether a managed tool entry exists, independently of availability or checksum validity.
+9. Removal invalidates the scan plan. Refresh tool status after success or failure; report failures with `E_TOOL_REMOVE` and never display partial removal as complete. The user can download the pinned tools again. External tools may remain available after managed removal.
 
 ## FR-14 Display language
 

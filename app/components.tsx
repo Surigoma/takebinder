@@ -93,15 +93,20 @@ function PathField({ t, label, value, onChoose, onDropPath }: { t: Translate; la
   </Stack>;
 }
 
-export function ToolsPanel({ t, tools, installing, onInstall }: { t: Translate; tools: ToolState; installing: boolean; onInstall(): void }) {
+export function ToolsPanel({ t, tools, installing, removing, busy, error, onInstall, onRemove }: { t: Translate; tools: ToolState; installing: boolean; removing: boolean; busy: boolean; error: string; onInstall(): void; onRemove(): void }) {
   return <Paper sx={{ p: { xs: 2, md: 3 } }}>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
       <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("mediaTools")}</Typography><Stack direction="row" spacing={1} sx={{ mt: 1 }}>
         <Chip label={`FFmpeg ${tools.ffmpeg ? "OK" : t("missing")}`} color={tools.ffmpeg ? "success" : "warning"} variant="outlined" />
         <Chip label={`ffprobe ${tools.ffprobe ? "OK" : t("missing")}`} color={tools.ffprobe ? "success" : "warning"} variant="outlined" />
       </Stack></Box>
-      <Button variant="outlined" disabled={installing || (tools.ffmpeg && tools.ffprobe)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+        <Button data-testid="install-tools" variant="outlined" disabled={busy || installing || removing || (tools.ffmpeg && tools.ffprobe)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
+        <Button data-testid="remove-tools" variant="outlined" color="error" disabled={busy || installing || removing || !tools.removable} onClick={onRemove} startIcon={removing ? <CircularProgress size={16} /> : undefined}>{t(removing ? "removingTools" : "removeTools")}</Button>
+      </Stack>
     </Stack>
+    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{t("removeToolsHelp")}</Typography>
+    {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
     {installing && <Box sx={{ mt: 2 }}><Typography variant="caption" color="text.secondary">{tools.label}</Typography><LinearProgress variant="determinate" value={tools.progress} sx={{ mt: 1 }} /></Box>}
   </Paper>;
 }
