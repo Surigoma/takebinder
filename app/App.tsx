@@ -26,7 +26,9 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [installing, setInstalling] = useState(false);
-  const [tools, setTools] = useState({ ffmpeg: false, ffprobe: false, label: t("checkingTools"), progress: 0 });
+  const [removing, setRemoving] = useState(false);
+  const [toolError, setToolError] = useState("");
+  const [tools, setTools] = useState({ ffmpeg: false, ffprobe: false, removable: false, label: t("checkingTools"), progress: 0 });
   const [logs, setLogs] = useState<string[]>([]);
   const [scanProgress, setScanProgress] = useState("");
   const readyGroups = useMemo(() => groups.filter((group) => group.status === "ready"), [groups]);
@@ -57,7 +59,7 @@ export function App() {
           const state = record(payload.tools);
           const ffmpeg = record(state.ffmpeg).available === true;
           const ffprobe = record(state.ffprobe).available === true;
-          setTools({ ffmpeg, ffprobe, progress: 0, label: `FFmpeg ${ffmpeg ? "OK" : t("missing")} / ffprobe ${ffprobe ? "OK" : t("missing")}` });
+          setTools({ ffmpeg, ffprobe, removable: record(state.ffmpeg).removable === true || record(state.ffprobe).removable === true, progress: 0, label: `FFmpeg ${ffmpeg ? "OK" : t("missing")} / ffprobe ${ffprobe ? "OK" : t("missing")}` });
           break;
         }
         case "tools.install.progress": {
@@ -73,6 +75,13 @@ export function App() {
           appendLog(`FFmpeg: ${ffmpeg.available === true ? t("available") : t("unavailable")}`);
           appendLog(`ffprobe: ${ffprobe.available === true ? t("available") : t("unavailable")}`);
           setInstalling(false);
+          void api.command({ type: "status", payload: {} });
+          break;
+        }
+        case "tools.remove.completed": {
+          setRemoving(false);
+          setGroups([]);
+          appendLog(t("toolsRemoved"));
           void api.command({ type: "status", payload: {} });
           break;
         }
@@ -110,11 +119,16 @@ export function App() {
           setBusy(false);
           setScanProgress("");
           setInstalling(false);
+          setRemoving(false);
+          if (payload.code === "E_TOOL_REMOVE") { setToolError(t("removeToolsError")); setGroups([]); }
+          if (payload.code === "E_TOOLS_BUSY") setToolError(t("toolsBusy"));
           appendLog(`${t("error")} [${String(payload.code ?? "")}] ${String(payload.message ?? "")}`);
           break;
         case "backend.exited":
           setBusy(false);
           setRunning(false);
+          setInstalling(false);
+          setRemoving(false);
           appendLog(t("backendExited"));
           break;
       }
@@ -159,11 +173,21 @@ export function App() {
   };
 
   const installTools = async () => {
-    if (!api) return;
+    if (!api || busy || installing || removing) return;
     setInstalling(true);
+    setToolError("");
     appendLog(t("toolDownloadStart"));
     try { await api.command({ type: "install-tools", payload: {} }); }
     catch (error) { setInstalling(false); appendLog(`${t("toolDownloadError")}: ${errorMessage(error)}`); }
+  };
+
+  const removeTools = async () => {
+    if (!api || busy || installing || removing || !tools.removable) return;
+    if (!window.confirm(t("removeToolsConfirm"))) return;
+    setRemoving(true);
+    setToolError("");
+    try { await api.command({ type: "remove-tools", payload: {} }); }
+    catch (error) { setRemoving(false); setToolError(t("removeToolsError")); appendLog(`${t("removeToolsError")}: ${errorMessage(error)}`); }
   };
 
   const resetSettings = () => {
@@ -187,12 +211,12 @@ export function App() {
     <Box><Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: 3 }}>LOSSLESS WORKFLOW</Typography><Typography variant="h2" sx={{ fontWeight: 800, fontSize: { xs: 38, md: 58 }, letterSpacing: "-0.045em" }}>TakeBinder</Typography><Typography color="text.secondary">{t("tagline")}</Typography></Box>
     <Paper><Tabs value={page} onChange={(_event, value: number) => setPage(value)} aria-label={t("pages")}><Tab label={t("conversion")} /><Tab data-testid="settings-tab" label={t("settings")} disabled={running} /></Tabs></Paper>
     {page === 0 ? <>
-      <ConversionPanel t={t} inputDir={inputDir} outputDir={outputDir} busy={busy} running={running} canRun={readyGroups.length > 0} copyOriginals={dateFolders && copyOriginals} originalBytes={originalBytes} scanProgress={scanProgress} onChooseInput={() => void choose(setInputDir)} onChooseOutput={() => void choose(setOutputDir)} onDropInput={(file) => void drop(file, setInputDir)} onDropOutput={(file) => void drop(file, setOutputDir)} onScan={() => void scan()} onRun={() => void run()} onCancel={() => void api.command({ type: "cancel", payload: {} })} />
+      <ConversionPanel t={t} inputDir={inputDir} outputDir={outputDir} busy={busy || installing || removing} running={running} canRun={readyGroups.length > 0} copyOriginals={dateFolders && copyOriginals} originalBytes={originalBytes} scanProgress={scanProgress} onChooseInput={() => void choose(setInputDir)} onChooseOutput={() => void choose(setOutputDir)} onDropInput={(file) => void drop(file, setInputDir)} onDropOutput={(file) => void drop(file, setOutputDir)} onScan={() => void scan()} onRun={() => void run()} onCancel={() => void api.command({ type: "cancel", payload: {} })} />
       <GroupsPanel t={t} groups={groups} readyCount={readyGroups.length} />
       <LogPanel t={t} logs={logs} />
     </> : <>
       <PreferencesPanel t={t} language={language} recursive={recursive} strictHash={strictHash} parallel={parallel} dateFolders={dateFolders} dateFolderFormat={dateFolderFormat} outputNameFormat={outputNameFormat} copyOriginals={copyOriginals} preserveFolders={preserveFolders} writeReport={writeReport} disabled={busy} onLanguage={setLanguage} onRecursive={setRecursive} onStrictHash={setStrictHash} onParallel={setParallel} onDateFolders={setDateFolders} onDateFolderFormat={setDateFolderFormat} onOutputNameFormat={setOutputNameFormat} onCopyOriginals={setCopyOriginals} onPreserveFolders={setPreserveFolders} onWriteReport={setWriteReport} onReset={resetSettings} />
-      <ToolsPanel t={t} tools={tools} installing={installing} onInstall={() => void installTools()} />
+      <ToolsPanel t={t} tools={tools} installing={installing} removing={removing} busy={busy} error={toolError} onInstall={() => void installTools()} onRemove={() => void removeTools()} />
     </>}
   </Stack></Container></Box>;
 }

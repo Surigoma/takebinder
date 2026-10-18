@@ -42,6 +42,7 @@ Go Backend
 - Limit concurrency with a semaphore.
 - Pass external commands as an executable and argument array; never assemble shell command strings.
 - During scanning, use ffprobe to inspect video, GoPro-specific tags, and `gpmd`. Prefer Media ID, Capture ID, and Chapter tags for grouping when available; otherwise fall back to GoPro filename conventions and return the decision basis and confidence.
+- Experimental DJI discovery uses Pocket model tags or DJI metadata/filename hints and returns independent file-copy units, never metadata-based capture groups. Copy the entire MP4, including unknown embedded DJI metadata; joining remains disabled. See [support status](osmo-pocket-support.md).
 - To preserve originals, open input read-only, write a temporary copy on the output filesystem, verify it with SHA-256, and only then finalize its name. Before starting, use OS APIs to estimate capacity for finished videos and source copies; return `E_DISK_FULL` when space is insufficient.
 - Set the first chapter's `creation_time` on joined output and verify it with ffprobe before finalizing. After completion, set the file modification time and, on Windows, creation time. Timestamp failures on unsupported operating systems or filesystems are recorded in warnings and reports and do not mark verified media as corrupt.
 - The Go backend determines default output names and relative input subdirectories during scanning, then restores them from the saved scan plan at execution time. When date directories are enabled, use `date/input-relative-directory/video`.
@@ -72,6 +73,7 @@ Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, 
 | `cancel` | Stop current processing |
 | `status` | Return backend and managed-tool status |
 | `install-tools` | Download and verify tools from the pinned manifest |
+| `remove-tools` | Remove only downloaded tool trees from managed storage; payload must be `{}` |
 
 ### 5.2 Events
 
@@ -87,8 +89,11 @@ Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, 
 | `run.completed` | All processing finished |
 | `tools.install.progress` | Tool-download byte progress |
 | `tools.install.completed` | FFmpeg and ffprobe download results |
+| `tools.remove.completed` | Removal succeeded; payload contains refreshed `tools` status |
 
 Every message contains `protocolVersion`, `requestId`, `type`, and `payload`.
+
+Tool status includes `available` and `removable` independently: an external PATH tool can be available after managed deletion, and a corrupt or old managed installation can still be removable. A backend read/write mutex prevents tool mutation during scans/runs and serializes installation/removal. Removal uses `os.Root` to confine deletion to the reserved tool trees and invalidates the scan plan. Errors use `E_TOOLS_BUSY` or `E_TOOL_REMOVE`; removal failure is followed by refreshed `status.completed`.
 
 ## 6. Software supply-chain protection
 

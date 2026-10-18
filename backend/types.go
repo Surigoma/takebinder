@@ -169,6 +169,7 @@ type probeStream struct {
 }
 
 type app struct {
+	toolsMu   sync.RWMutex
 	out       *json.Encoder
 	emitMu    sync.Mutex
 	runMu     sync.Mutex

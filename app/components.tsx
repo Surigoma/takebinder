@@ -1,5 +1,5 @@
 import {
-  Box, Button, Chip, CircularProgress, Divider, FormControlLabel, LinearProgress, MenuItem,
+  Alert, Box, Button, Chip, CircularProgress, Divider, FormControlLabel, LinearProgress, MenuItem,
   Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Switch, TextField, Typography
 } from "@mui/material";
@@ -93,15 +93,20 @@ function PathField({ t, label, value, onChoose, onDropPath }: { t: Translate; la
   </Stack>;
 }
 
-export function ToolsPanel({ t, tools, installing, onInstall }: { t: Translate; tools: ToolState; installing: boolean; onInstall(): void }) {
+export function ToolsPanel({ t, tools, installing, removing, busy, error, onInstall, onRemove }: { t: Translate; tools: ToolState; installing: boolean; removing: boolean; busy: boolean; error: string; onInstall(): void; onRemove(): void }) {
   return <Paper sx={{ p: { xs: 2, md: 3 } }}>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
       <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("mediaTools")}</Typography><Stack direction="row" spacing={1} sx={{ mt: 1 }}>
         <Chip label={`FFmpeg ${tools.ffmpeg ? "OK" : t("missing")}`} color={tools.ffmpeg ? "success" : "warning"} variant="outlined" />
         <Chip label={`ffprobe ${tools.ffprobe ? "OK" : t("missing")}`} color={tools.ffprobe ? "success" : "warning"} variant="outlined" />
       </Stack></Box>
-      <Button variant="outlined" disabled={installing || (tools.ffmpeg && tools.ffprobe)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+        <Button data-testid="install-tools" variant="outlined" disabled={busy || installing || removing || (tools.ffmpeg && tools.ffprobe)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
+        <Button data-testid="remove-tools" variant="outlined" color="error" disabled={busy || installing || removing || !tools.removable} onClick={onRemove} startIcon={removing ? <CircularProgress size={16} /> : undefined}>{t(removing ? "removingTools" : "removeTools")}</Button>
+      </Stack>
     </Stack>
+    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{t("removeToolsHelp")}</Typography>
+    {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
     {installing && <Box sx={{ mt: 2 }}><Typography variant="caption" color="text.secondary">{tools.label}</Typography><LinearProgress variant="determinate" value={tools.progress} sx={{ mt: 1 }} /></Box>}
   </Paper>;
 }
@@ -109,13 +114,40 @@ export function ToolsPanel({ t, tools, installing, onInstall }: { t: Translate; 
 export function GroupsPanel({ t, groups, readyCount }: { t: Translate; groups: Group[]; readyCount: number }) {
   return <Paper sx={{ overflow: "hidden" }}>
     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", p: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("captureGroups")}</Typography><Chip label={t("groupSummary", { total: groups.length, ready: readyCount })} /></Stack>
+    {groups.some((group) => group.basis === "DJI file copy") && <Alert severity="info" sx={{ mx: 2.5, mb: 2 }}>{t("djiCopyNotice")}</Alert>}
     <TableContainer sx={{ maxHeight: 430 }}><Table stickyHeader size="small">
       <TableHead><TableRow><TableCell>{t("outputName")}</TableCell><TableCell>{t("chapters")}</TableCell><TableCell>{t("size")}</TableCell><TableCell>{t("status")}</TableCell><TableCell>{t("videoInfo")}</TableCell><TableCell>{t("progress")}</TableCell></TableRow></TableHead>
       <TableBody>{groups.length === 0
         ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>{t("emptyGroups")}</TableCell></TableRow>
-        : groups.map((group) => <TableRow key={group.id} hover><TableCell>{group.outputName}</TableCell><TableCell>{group.files.length}</TableCell><TableCell>{formatBytes(group.files.reduce((sum, file) => sum + file.size, 0))}</TableCell><TableCell><Stack spacing={0.5} sx={{ alignItems: "flex-start" }}><Chip size="small" label={group.status === "ready" ? t("ready") : group.reason ?? t("review")} color={group.status === "ready" ? "success" : "warning"} /><Typography variant="caption" color="text.secondary">{group.hasGpmf ? t("gpmfYes") : t("gpmfNo")} / {confidenceLabel(group.confidence, t)} / {group.basis === "GoProファイル名規則" ? t("basisFilename") : group.basis}</Typography></Stack></TableCell><TableCell sx={{ whiteSpace: "nowrap" }}>{formatVideoInfo(group, t)}</TableCell><TableCell><ProgressCell group={group} t={t} /></TableCell></TableRow>)}</TableBody>
+        : groups.map((group) => <GroupRow key={group.id} group={group} t={t} />)}</TableBody>
     </Table></TableContainer>
   </Paper>;
+}
+
+function GroupRow({ group, t }: { group: Group; t: Translate }) {
+  const ready = group.status === "ready";
+  const readyLabel = t(group.basis === "DJI file copy" ? "copyOnly" : "ready");
+  const statusLabel = ready ? readyLabel : group.reason ?? t("review");
+  const basis = groupBasisLabel(group.basis, t);
+  const bytes = group.files.reduce((sum, file) => sum + file.size, 0);
+
+  return <TableRow hover>
+    <TableCell>{group.outputName}</TableCell>
+    <TableCell>{group.files.length}</TableCell>
+    <TableCell>{formatBytes(bytes)}</TableCell>
+    <TableCell><Stack spacing={0.5} sx={{ alignItems: "flex-start" }}>
+      <Chip size="small" label={statusLabel} color={ready ? "success" : "warning"} />
+      <Typography variant="caption" color="text.secondary">{group.hasGpmf ? t("gpmfYes") : t("gpmfNo")} / {confidenceLabel(group.confidence, t)} / {basis}</Typography>
+    </Stack></TableCell>
+    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatVideoInfo(group, t)}</TableCell>
+    <TableCell><ProgressCell group={group} t={t} /></TableCell>
+  </TableRow>;
+}
+
+function groupBasisLabel(basis: string, t: Translate): string {
+  if (basis === "GoProファイル名規則") return t("basisFilename");
+  if (basis === "DJI file copy") return t("basisDjiCopy");
+  return basis;
 }
 
 function ProgressCell({ group, t }: { group: Group; t: Translate }) {

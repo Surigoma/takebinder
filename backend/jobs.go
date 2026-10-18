@@ -110,6 +110,13 @@ func (a *app) processGroup(ctx context.Context, outputDir string, g group, stric
 	if len(g.Files) == 0 {
 		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_BAD_REQUEST", Message: "group has no files"}
 	}
+	if len(g.Files) > 1 {
+		for _, file := range g.Files {
+			if isDJIClassification(file.Classification) {
+				return jobResult{GroupID: g.ID, Status: "failed", Code: "E_GROUP_AMBIGUOUS", Message: "DJI files support individual copying only; capture boundaries and joined metadata preservation are not verified"}
+			}
+		}
+	}
 	if dateFolders {
 		folder, err := dateFolderName(g.Files[0].Captured, dateFolderFormat)
 		if err != nil {

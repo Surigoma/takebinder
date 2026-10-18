@@ -5,6 +5,9 @@ export type Language = "ja" | "en";
 export type Translate = TFunction;
 
 const ja = {
+  toolsBusy: "動画の解析・処理またはツールの取得・削除が終わってから、もう一度お試しください。",
+  removeTools: "取得したツールを削除", removingTools: "削除中…", removeToolsHelp: "アプリが取得したFFmpeg・ffprobeを削除できます。必要になったら再取得できます。別途インストールしたツールと動画は削除しません。", removeToolsConfirm: "アプリが取得したFFmpeg・ffprobe（旧バージョンを含む）を削除しますか？ 必要になったら再取得できます。動画や別途インストールしたツールは削除しません。", toolsRemoved: "アプリが取得したメディアツールを削除しました。", removeToolsError: "メディアツール削除エラー",
+  copyOnly: "コピーのみ", basisDjiCopy: "DJI候補・ファイル単位", djiCopyNotice: "Osmo Pocket / DJI候補は試験対応です。録画の区切りは未確認のため、分割動画も1ファイルずつコピー・整理し、自動結合しません。ファイル名だけでは機種を確定できません。",
   checkingTools: "結合ツールを確認中…", missing: "未検出", downloading: "{{tool}} を取得中", available: "利用可能", unavailable: "未取得",
   scanComplete: "フォルダ解析が完了しました。", skipped: "スキップ", scanProgress: "{{count}}件目を解析中: {{file}}", started: "開始", completed: "完了", failed: "失敗", warning: "警告",
   allCompletedReport: "全処理完了。レポート: {{path}}", allCompleted: "全処理完了。", error: "エラー", backendExited: "バックエンドが終了しました。", startupError: "起動エラー",
@@ -26,6 +29,9 @@ const ja = {
 } as const;
 
 const en: Record<keyof typeof ja, string> = {
+  toolsBusy: "Wait for video scanning, processing, or tool changes to finish, then try again.",
+  removeTools: "Remove downloaded tools", removingTools: "Removing…", removeToolsHelp: "Remove FFmpeg and ffprobe downloaded by this app. You can download them again when needed. Separately installed tools and videos are kept.", removeToolsConfirm: "Remove FFmpeg and ffprobe downloaded by this app, including older versions? You can download them again. Videos and separately installed tools are kept.", toolsRemoved: "Downloaded media tools were removed.", removeToolsError: "Media tool removal error",
+  copyOnly: "Copy only", basisDjiCopy: "DJI candidate / individual file", djiCopyNotice: "Experimental Osmo Pocket / DJI discovery. Recording boundaries are unverified: split videos are copied and organized individually without automatic joining. Filenames alone cannot identify the camera model.",
   checkingTools: "Checking media tools…", missing: "Not found", downloading: "Downloading {{tool}}", available: "Available", unavailable: "Not installed",
   scanComplete: "Folder scan completed.", skipped: "Skipped", scanProgress: "Scanning item {{count}}: {{file}}", started: "Started", completed: "Completed", failed: "Failed", warning: "Warning",
   allCompletedReport: "All processing completed. Report: {{path}}", allCompleted: "All processing completed.", error: "Error", backendExited: "The backend has exited.", startupError: "Startup error",
