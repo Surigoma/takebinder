@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/Surigoma/takebinder/compare/v0.3.0...v0.4.0) (2026-10-20)
+
+
+### Features
+
+* join verified Osmo Pocket 4 splits ([#36](https://github.com/Surigoma/takebinder/issues/36)) ([a6f8b73](https://github.com/Surigoma/takebinder/commit/a6f8b736260517c4b2c06bdeefd51e77b4877ada))
+
 ## [0.3.0](https://github.com/Surigoma/takebinder/compare/v0.2.1...v0.3.0) (2026-10-18)
 
 
