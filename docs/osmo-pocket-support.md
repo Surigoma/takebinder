@@ -1,5 +1,7 @@
 # Osmo Pocket / DJI support status
 
+[日本語](osmo-pocket-support.ja.md)
+
 ## Scope
 
 Osmo Pocket generations and DJI-named MP4s are discovered experimentally. TakeBinder can losslessly join a conservative subset of **Osmo Pocket 4** long-recording splits validated with real camera footage. Other Pocket generations, renamed files, and generic DJI candidates remain individual byte-for-byte copies.
