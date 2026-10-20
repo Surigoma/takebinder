@@ -16,7 +16,7 @@ if (!process.versions.electron) {
   app.disableHardwareAcceleration();
   const timeout = setTimeout(() => { console.error("Tool UI test timed out"); app.exit(1); }, 30000);
   let win, removals = 0, failRemoval = false;
-  let tools = { ffmpeg: { available: true, removable: true }, ffprobe: { available: true, removable: true } };
+  let tools = { ffmpeg: { available: true, removable: true }, ffprobe: { available: true, removable: true }, mp4_merge: { available: true, removable: true } };
   const send = (type, payload) => win.webContents.send("backend:event", { protocolVersion: "1", requestId: "test", type, payload });
   ipcMain.handle("backend:command", (_event, command) => {
     if (command.type === "status") setTimeout(() => send("status.completed", { tools }), 10);
@@ -28,14 +28,14 @@ if (!process.versions.electron) {
           send("error", { code: "E_TOOL_REMOVE", message: "test removal failure" });
           send("status.completed", { tools });
         } else {
-          tools = { ffmpeg: { available: false, removable: false }, ffprobe: { available: true, removable: false } };
+          tools = { ffmpeg: { available: false, removable: false }, ffprobe: { available: true, removable: false }, mp4_merge: { available: false, removable: false } };
           send("tools.remove.completed", { tools });
         }
       }, 150);
     } else if (command.type === "install-tools") {
       send("tools.install.progress", { tool: "ffmpeg", downloaded: 1, total: 2 });
       setTimeout(() => {
-        tools = { ffmpeg: { available: true, removable: true }, ffprobe: { available: true, removable: true } };
+        tools = { ffmpeg: { available: true, removable: true }, ffprobe: { available: true, removable: true }, mp4_merge: { available: true, removable: true } };
         send("tools.install.completed", { tools });
       }, 150);
     }
@@ -67,7 +67,7 @@ if (!process.versions.electron) {
       await js('window.confirm = text => { window.testConfirmation = text; return true; }; document.querySelector("[data-testid=remove-tools]").click()');
       await waitFor('document.querySelector("[data-testid=remove-tools]").disabled && document.querySelector("[data-testid=install-tools]").disabled');
       const confirmText = await js('window.testConfirmation');
-      if (!confirmText.includes("FFmpeg") || !confirmText.includes("ffprobe")) throw new Error("Confirmation omitted targets");
+      if (!confirmText.includes("FFmpeg") || !confirmText.includes("ffprobe") || !confirmText.includes("mp4-merge")) throw new Error("Confirmation omitted targets");
       await waitFor(`[...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes(${JSON.stringify(language === "ja" ? "メディアツール削除エラー" : "Media tool removal error")}))`);
       await waitFor('document.querySelector("[data-testid=remove-tools]").disabled === false');
       failRemoval = false;

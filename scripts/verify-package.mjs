@@ -23,7 +23,7 @@ for (const artifact of manifest.artifacts) {
     throw new Error(`artifact mismatch: ${artifact.path}`);
   }
 }
-for (const name of ["ffmpeg", "ffprobe"]) {
+for (const name of ["ffmpeg", "ffprobe", "mp4_merge"]) {
   if (!manifest.nativeTools[name]?.version || !/^[a-f0-9]{64}$/.test(manifest.nativeTools[name]?.expectedSha256 ?? "")) throw new Error(`native tool metadata missing: ${name}`);
 }
 console.log(`Release manifest verified: ${manifest.artifacts.length} artifacts`);

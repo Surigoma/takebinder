@@ -25,7 +25,7 @@ TakeBinder is distributed as a portable application. Download the package for yo
 - macOS: launch `TakeBinder.app`.
 - Linux: launch `takebinder` inside `TakeBinder-linux-x64`.
 
-On first use, open **Settings** and select **Download verified tools**. TakeBinder downloads pinned standalone FFmpeg and ffprobe binaries, verifies their size and SHA-256 hash, and stores them in the application's managed data directory. An internet connection is needed for this download; video processing itself is local.
+On first use, open **Settings** and select **Download verified tools**. TakeBinder downloads pinned standalone FFmpeg, ffprobe, and mp4-merge binaries, verifies their size and SHA-256 hash, and stores them in the application's managed data directory. An internet connection is needed for this download; video processing itself is local.
 
 ## Quick start
 

@@ -17,6 +17,6 @@ export type API = {
   command(command: BackendCommand): Promise<string>;
   onEvent(listener: (event: BackendEvent) => void): () => void;
 };
-export type ToolState = { ffmpeg: boolean; ffprobe: boolean; removable: boolean; label: string; progress: number };
+export type ToolState = { ffmpeg: boolean; ffprobe: boolean; mp4Merge: boolean; removable: boolean; label: string; progress: number };
 
 declare global { interface Window { takeBinder?: API } }

@@ -21,9 +21,10 @@ if (!process.versions.electron) {
     outputName: `2026-10-18_123000_${index < 2 ? "DJI_000" : "GX01000"}${index}.mp4`, relativeDir: "",
     files: [{ path: path.join(work, `${index}.mp4`), name: `${index}.mp4`, size: 1024, modified: "2026-10-18T12:30:00Z", captured: "2026-10-18T12:30:00Z", capturedSource: "metadata.creation_time", duration: 60, width: 3840, height: 2160, chapter: 1, hasGpmf: index === 2, classification }]
   }));
+  groups.push({ ...groups[0], id: "pocket4-split", basis: "DJI Pocket 4 split continuity", confidence: "high", outputName: "2026-10-18_123000_Pocket4.mp4", files: [groups[0].files[0], { ...groups[0].files[0], path: path.join(work, "pocket4-2.mp4"), name: "pocket4-2.mp4", chapter: 2 }] });
   let win;
   ipcMain.handle("backend:command", (_event, command) => {
-    const response = command.type === "scan" ? { groups, skipped: [] } : { tools: { ffmpeg: { available: true }, ffprobe: { available: true } } };
+    const response = command.type === "scan" ? { groups, skipped: [] } : { tools: { ffmpeg: { available: true }, ffprobe: { available: true }, mp4_merge: { available: true } } };
     setTimeout(() => win.webContents.send("backend:event", { protocolVersion: "1", requestId: "test", type: `${command.type}.completed`, payload: response }), 10);
     return "test";
   });
@@ -55,10 +56,11 @@ if (!process.versions.electron) {
       await waitFor('Array.from(document.querySelectorAll("[data-drop-zone] input")).every(e => e.value.length > 0)');
       await js('document.querySelector("[data-testid=scan]").click()');
       const copyOnly = language === "ja" ? "コピーのみ" : "Copy only";
-      const notice = language === "ja" ? "自動結合しません" : "without automatic joining";
+      const notice = language === "ja" ? "Pocket 4の分割だけ" : "Only Pocket 4 splits";
       await waitFor(`[...document.querySelectorAll("tbody tr")].filter(e => e.textContent.includes(${JSON.stringify(copyOnly)})).length === 2 && document.body.innerText.includes(${JSON.stringify(notice)})`);
       const text = await js('document.body.innerText');
       if (!text.includes(language === "ja" ? "GoProファイル名規則" : "GoPro filename pattern")) throw new Error("GoPro row lost its identity");
+      if (!text.includes(language === "ja" ? "Pocket 4 分割連続性" : "Pocket 4 split continuity")) throw new Error("Pocket 4 joined row lost its identity");
       await js('document.querySelector("tbody").closest(".MuiPaper-root").scrollIntoView(); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
       await new Promise((resolve) => setTimeout(resolve, 100));
       writeFileSync(path.join(work, `${language}.png`), (await win.webContents.capturePage()).toPNG());
@@ -68,7 +70,7 @@ if (!process.versions.electron) {
     await new Promise((resolve) => setTimeout(resolve, 100));
     writeFileSync(path.join(work, "minimum-width.png"), (await win.webContents.capturePage()).toPNG());
     clearTimeout(timeout);
-    console.log("Pocket Renderer/preload contract: copy-only rows, limitation notice, mixed GoPro rows, scan interaction, and Japanese/English switching OK");
+    console.log("Pocket Renderer/preload contract: joined/copy-only DJI rows, support notice, mixed GoPro rows, scan interaction, and Japanese/English switching OK");
     app.quit();
   }).catch((error) => { console.error(error); app.exit(1); });
 }

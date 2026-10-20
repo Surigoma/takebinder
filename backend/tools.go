@@ -53,6 +53,15 @@ var ffmpegAssets = map[string]toolAsset{
 	"darwin/arm64":  {"ffmpeg", "8.1.2-1", "https://github.com/shaka-project/static-ffmpeg-binaries/releases/download/n8.1.2-1/ffmpeg-osx-arm64", "e7b9fcd97f95f333512d6e8b8ac24d9dbc08f189f36047695499bd7b57214b22", 34074040, "ffmpeg"},
 }
 
+var mp4MergeAssets = map[string]toolAsset{
+	"windows/amd64": {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-windows64.exe", "0d5a7fcebd11bc13096b5a6613ce85306241673775228c803a47d537a7bc9f52", 266240, "mp4_merge.exe"},
+	"windows/arm64": {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-windows-arm64.exe", "369016e82ed6bd5c2746e09348846a8f7b9774d111570b43e4877a71054f01bd", 242176, "mp4_merge.exe"},
+	"linux/amd64":   {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-linux64", "decb9b3a8c0201c3c8ceb8e8c3e4ed11b469a02a83927f52565b31e5b9866e96", 569944, "mp4_merge"},
+	"linux/arm64":   {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-linux-arm64", "86347dfa862af7b0108f74e8aca564b0464ab9f492bc2b8dc46977c20b68bf17", 672544, "mp4_merge"},
+	"darwin/amd64":  {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-mac64", "9e128de4c34f6f071827f63a88c712eeff9cc76b5a59294a4169d6e9d9f92dbc", 429368, "mp4_merge"},
+	"darwin/arm64":  {"mp4_merge", "0.1.11", "https://github.com/gyroflow/mp4-merge/releases/download/v0.1.11/mp4_merge-mac-arm64", "ce003818abe71ea0346caaf8c6063d11ab123ab03dc142d806fed1d267d48c13", 440248, "mp4_merge"},
+}
+
 var allowedDownloadHosts = map[string]bool{
 	"github.com":                           true,
 	"release-assets.githubusercontent.com": true,
@@ -93,6 +102,8 @@ func toolAssetFor(name string) (toolAsset, bool) {
 	assets := ffprobeAssets
 	if name == "ffmpeg" {
 		assets = ffmpegAssets
+	} else if name == "mp4_merge" {
+		assets = mp4MergeAssets
 	} else if name != "ffprobe" {
 		return toolAsset{}, false
 	}
@@ -113,8 +124,9 @@ func currentToolStatus(name string) toolInstallResult {
 
 func currentToolsStatus() map[string]toolInstallResult {
 	return map[string]toolInstallResult{
-		"ffmpeg":  currentToolStatus("ffmpeg"),
-		"ffprobe": currentToolStatus("ffprobe"),
+		"ffmpeg":    currentToolStatus("ffmpeg"),
+		"ffprobe":   currentToolStatus("ffprobe"),
+		"mp4_merge": currentToolStatus("mp4_merge"),
 	}
 }
 
@@ -128,7 +140,7 @@ func (a *app) handleInstallTools(requestID string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 		result := currentToolsStatus()
-		for _, name := range []string{"ffmpeg", "ffprobe"} {
+		for _, name := range []string{"ffmpeg", "ffprobe", "mp4_merge"} {
 			if result[name].Available {
 				continue
 			}
@@ -142,7 +154,11 @@ func (a *app) handleInstallTools(requestID string) {
 				a.emitError(requestID, "E_TOOL_DOWNLOAD", err)
 				return
 			}
-			if output, err := exec.CommandContext(ctx, path, "-version").CombinedOutput(); err != nil {
+			args := []string{"-version"}
+			if name == "mp4_merge" {
+				args = nil
+			}
+			if output, err := exec.CommandContext(ctx, path, args...).CombinedOutput(); err != nil {
 				a.emitError(requestID, "E_TOOL_INVALID", fmt.Errorf("downloaded %s failed its version check: %w: %s", name, err, strings.TrimSpace(string(output))))
 				return
 			}
@@ -158,7 +174,7 @@ func removeManagedTools() error {
 		return errors.New("managed tools directory is not configured")
 	}
 	// Root confines traversal to application-managed storage, including if a
-	// version directory is a symlink. Only these two reserved names are removed;
+	// version directory is a symlink. Only these reserved names are removed;
 	// PATH tools and arbitrary paths from IPC are never deletion targets.
 	root, err := os.OpenRoot(dir)
 	if errors.Is(err, os.ErrNotExist) {
@@ -169,7 +185,7 @@ func removeManagedTools() error {
 	}
 	defer root.Close()
 	var failures []error
-	for _, name := range []string{"ffmpeg", "ffprobe"} {
+	for _, name := range []string{"ffmpeg", "ffprobe", "mp4_merge"} {
 		if err := root.RemoveAll(name); err != nil {
 			failures = append(failures, fmt.Errorf("remove managed %s: %w", name, err))
 		}

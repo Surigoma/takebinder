@@ -19,6 +19,7 @@ Go Backend
   └─ Output verification
        ├─ FFmpeg (stream-copy joining)
        ├─ ffprobe (stream inspection)
+       ├─ mp4-merge (Pocket 4 MP4 table joining)
        └─ GPMF parser (telemetry verification candidate)
 ```
 
@@ -42,14 +43,14 @@ Go Backend
 - Limit concurrency with a semaphore.
 - Pass external commands as an executable and argument array; never assemble shell command strings.
 - During scanning, use ffprobe to inspect video, GoPro-specific tags, and `gpmd`. Prefer Media ID, Capture ID, and Chapter tags for grouping when available; otherwise fall back to GoPro filename conventions and return the decision basis and confidence.
-- Experimental DJI discovery uses Pocket model tags or DJI metadata/filename hints and returns independent file-copy units, never metadata-based capture groups. Copy the entire MP4, including unknown embedded DJI metadata; joining remains disabled. See [support status](osmo-pocket-support.md).
+- Experimental DJI discovery uses Pocket model tags or DJI metadata/filename hints. Only Pocket 4 files satisfying the verified split-continuity contract form a joined group; all others remain independent byte-copy units. See [support status](osmo-pocket-support.md).
 - To preserve originals, open input read-only, write a temporary copy on the output filesystem, verify it with SHA-256, and only then finalize its name. Before starting, use OS APIs to estimate capacity for finished videos and source copies; return `E_DISK_FULL` when space is insufficient.
 - Set the first chapter's `creation_time` on joined output and verify it with ffprobe before finalizing. After completion, set the file modification time and, on Windows, creation time. Timestamp failures on unsupported operating systems or filesystems are recorded in warnings and reports and do not mark verified media as corrupt.
 - The Go backend determines default output names and relative input subdirectories during scanning, then restores them from the saved scan plan at execution time. When date directories are enabled, use `date/input-relative-directory/video`.
 
 ## 4. Native media tools
 
-Electron and Go code are built for each OS/CPU target. FFmpeg and ffprobe are not bundled with the application; pinned standalone binaries explicitly downloaded by the user through the UI are stored in application-managed storage.
+Electron and Go code are built for each OS/CPU target. FFmpeg, ffprobe, and mp4-merge are not bundled with the application; pinned standalone binaries explicitly downloaded by the user through the UI are stored in application-managed storage.
 
 Distributions are generated in native environments using `package:windows`, `package:macos`, and `package:linux`, with each task verified by the CI OS matrix.
 
@@ -61,6 +62,8 @@ The selected tools must satisfy all of the following through technical validatio
 - Meet licensing requirements for commercial distribution
 
 Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, and `gpmd` are mapped explicitly and muxed with `-c copy`. A successful command alone is not completion: ffprobe compares input/output video and audio properties, total duration, and the SHA-256, order, and size of every packet. For `gpmd`, it also verifies a time range covering the full video and preservation of major input keys (`GYRO`, `ACCL`, `GPS5`). Real GoPro samples have been verified for matching video, audio, and `gpmd` packet payloads and preservation of major GPMF keys.
+
+Pocket 4 split groups are passed to pinned mp4-merge 0.1.11 in chapter order. It rewrites MP4 sample tables without decoding media. mp4-merge preserves only the first `tmcd` sample and attached MJPEG thumbnail. TakeBinder retains the SMPTE start payload and extends its MP4 `stts` duration across the joined video after validating chapter-to-chapter timecode continuity. Before atomic rename, ffprobe verifies the full seven-track layout, summed duration, creation time, exact concatenated packet hashes/counts/bytes for HEVC, both AAC tracks, `djmd`, and `dbgi`, the unchanged first `tmcd` and MJPEG payloads, and a timecode range covering the joined video.
 
 ## 5. Backend communication protocol
 
@@ -88,7 +91,7 @@ Multiple chapters are passed to FFmpeg's concat demuxer in order. Video, audio, 
 | `job.failed` | Group processing failed |
 | `run.completed` | All processing finished |
 | `tools.install.progress` | Tool-download byte progress |
-| `tools.install.completed` | FFmpeg and ffprobe download results |
+| `tools.install.completed` | FFmpeg, ffprobe, and mp4-merge download results |
 | `tools.remove.completed` | Removal succeeded; payload contains refreshed `tools` status |
 
 Every message contains `protocolVersion`, `requestId`, `type`, and `payload`.
@@ -151,5 +154,5 @@ Tool status includes `available` and `removable` independently: an external PATH
 - Pin download URLs, versions, filenames, sizes, and SHA-256 hashes in the Go binary. Do not replace them at runtime with a remote server manifest.
 - Allow HTTPS only and validate both initial and redirected hosts against an allowlist.
 - Download into a size-limited temporary file and finalize it in application-managed storage only after size and SHA-256 match.
-- Download standalone FFmpeg and ffprobe binaries from pinned Shaka Project releases and mark them available only after `-version` succeeds. Never execute an installer.
+- Download standalone FFmpeg and ffprobe binaries from pinned Shaka Project releases and mp4-merge from its pinned Gyroflow release. Verify exact size and SHA-256, then run a non-mutating startup check. Never execute an installer.
 - Current targets are Windows x64, macOS x64/arm64, and Linux x64/arm64.

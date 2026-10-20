@@ -112,7 +112,7 @@ func (a *app) processGroup(ctx context.Context, outputDir string, g group, stric
 	}
 	if len(g.Files) > 1 {
 		for _, file := range g.Files {
-			if isDJIClassification(file.Classification) {
+			if isDJIClassification(file.Classification) && g.Basis != "DJI Pocket 4 split continuity" {
 				return jobResult{GroupID: g.ID, Status: "failed", Code: "E_GROUP_AMBIGUOUS", Message: "DJI files support individual copying only; capture boundaries and joined metadata preservation are not verified"}
 			}
 		}
@@ -181,7 +181,12 @@ func (a *app) processGroup(ctx context.Context, outputDir string, g group, stric
 		}
 		return jobResult{GroupID: g.ID, Status: "completed", OutputPath: target, SHA256: hash, Originals: originals, Warnings: warnings, OutputStreams: g.Files[0].Streams, GPMFVerification: "byte-identical"}
 	}
-	result := joinGroup(ctx, g, target, contentProgress)
+	var result jobResult
+	if g.Basis == "DJI Pocket 4 split continuity" {
+		result = joinPocket4Group(ctx, g, target, contentProgress)
+	} else {
+		result = joinGroup(ctx, g, target, contentProgress)
+	}
 	result.Originals = originals
 	return result
 }

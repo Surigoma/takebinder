@@ -18,6 +18,7 @@ func TestDJIClassification(t *testing.T) {
 		{"pocket 2", "renamed.mp4", "osmo-pocket", map[string]string{"camera_model": "DJI Pocket 2"}},
 		{"pocket 3", "renamed.mp4", "osmo-pocket", map[string]string{"com.apple.quicktime.model": "Osmo Pocket 3"}},
 		{"pocket 4", "renamed.mp4", "osmo-pocket", map[string]string{"Model": "DJI Osmo Pocket 4", "firmware": "test"}},
+		{"pocket 4 encoder", "renamed.mp4", "osmo-pocket", map[string]string{"encoder": "DJI OsmoPocket4"}},
 		{"legacy hint", "DJI_0001.MP4", "dji-candidate", nil},
 		{"modern hint", "dji_20261018123000_0001_d.mp4", "dji-candidate", nil},
 		{"manufacturer", "custom.mp4", "dji-candidate", map[string]string{"make": "DJI", "model": "Osmo Action 4"}},
@@ -39,6 +40,84 @@ func TestDJIClassification(t *testing.T) {
 	probe := probeResult{Streams: []probeStream{{CodecType: "video", Tags: map[string]string{"model": "Osmo Pocket 4"}}, {CodecType: "data", CodecTagString: "gpmd"}}}
 	if got, gpmf := classifyMedia(probe, "custom.mp4"); got != "osmo-pocket" || !gpmf {
 		t.Fatalf("stream model/GPMF classification: %q, %t", got, gpmf)
+	}
+}
+
+func TestPocket4SplitGroupingRequiresContinuity(t *testing.T) {
+	probe := probeResult{
+		Format:  probeFormat{Tags: map[string]string{"encoder": "DJI OsmoPocket4"}},
+		Streams: []probeStream{{CodecType: "video", CodecName: "hevc", CodecTagString: "hvc1", FrameRate: "60000/1001"}, {CodecType: "data", CodecTagString: "djmd"}},
+	}
+	makeCandidate := func(name, timecode string, size int64, duration float64) groupCandidate {
+		candidateProbe := probe
+		candidateProbe.Format.Tags = map[string]string{"encoder": "DJI OsmoPocket4", "timecode": timecode}
+		return groupCandidate{probe: candidateProbe, file: videoFile{Path: filepath.Join("C:\\clips", name), Name: name, Size: size, Duration: duration, Classification: "osmo-pocket"}}
+	}
+	first := makeCandidate("DJI_20260824210407_0030_D.MP4", "21:04:36;30", 17190133305, 2650.090667)
+	second := makeCandidate("DJI_20260824214819_0031_D.MP4", "21:48:46;36", 17189903106, 2647.338667)
+	third := makeCandidate("DJI_20260824223226_0032_D.MP4", "22:32:53;52", 9289912204, 1449.92)
+	grouped := map[string][]groupCandidate{"a": {first}, "b": {second}, "c": {third}}
+	regroupPocket4Candidates(grouped)
+	if len(grouped) != 1 {
+		t.Fatalf("got %d groups, want one: %#v", len(grouped), grouped)
+	}
+	for _, chain := range grouped {
+		if len(chain) != 3 || chain[0].basis != "DJI Pocket 4 split continuity" || chain[2].file.Chapter != 3 {
+			t.Fatalf("unexpected chain: %#v", chain)
+		}
+	}
+
+	broken := map[string][]groupCandidate{"a": {first}, "c": {third}}
+	regroupPocket4Candidates(broken)
+	if len(broken) != 2 {
+		t.Fatalf("counter gap was grouped: %#v", broken)
+	}
+	short := first
+	short.file.Size = 1024
+	broken = map[string][]groupCandidate{"a": {short}, "b": {second}}
+	regroupPocket4Candidates(broken)
+	if len(broken) != 2 {
+		t.Fatalf("non-split-sized predecessor was grouped: %#v", broken)
+	}
+	pocket3First, pocket3Second := first, second
+	pocket3First.probe.Format.Tags["encoder"] = "DJI OsmoPocket3"
+	pocket3Second.probe.Format.Tags["encoder"] = "DJI OsmoPocket3"
+	broken = map[string][]groupCandidate{"a": {pocket3First}, "b": {pocket3Second}}
+	regroupPocket4Candidates(broken)
+	if len(broken) != 2 {
+		t.Fatalf("Pocket 3 was grouped by Pocket 4 rules: %#v", broken)
+	}
+}
+
+func TestRealPocket4PacketVerification(t *testing.T) {
+	rawInputs, output := os.Getenv("TAKEBINDER_DJI_SAMPLE_INPUTS"), os.Getenv("TAKEBINDER_DJI_SAMPLE_OUTPUT")
+	if rawInputs == "" || output == "" {
+		t.Skip("set TAKEBINDER_DJI_SAMPLE_INPUTS and TAKEBINDER_DJI_SAMPLE_OUTPUT to run")
+	}
+	ffprobe, err := findTool("ffprobe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := filepath.SplitList(rawInputs)
+	files, probes := make([]videoFile, len(paths)), make([]probeResult, len(paths))
+	for index, path := range paths {
+		files[index] = videoFile{Path: path, Name: filepath.Base(path)}
+		probes[index], err = inspectFile(context.Background(), ffprobe, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if os.Getenv("TAKEBINDER_DJI_EXTEND_TIMECODE") == "1" {
+		if err := extendMergedTimecode(output, files); err != nil {
+			t.Fatal(err)
+		}
+	}
+	outputProbe, err := inspectFile(context.Background(), ffprobe, output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAllPacketPayloads(context.Background(), ffprobe, files, probes, output, outputProbe); err != nil {
+		t.Fatal(err)
 	}
 }
 

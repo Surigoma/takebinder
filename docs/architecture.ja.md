@@ -19,6 +19,7 @@ Go Backend
   └─ 出力検証
        ├─ FFmpeg（ストリームコピー結合）
        ├─ ffprobe（ストリーム検査）
+       ├─ mp4-merge（Pocket 4のMP4テーブル結合）
        └─ GPMF parser（テレメトリ検証候補）
 ```
 
@@ -42,14 +43,14 @@ Go Backend
 - 同時実行数をセマフォで制限する。
 - パスはシェル文字列へ連結せず、引数配列として外部プロセスへ渡す。
 - 走査時はffprobeで映像、GoPro固有タグ、`gpmd`を確認する。Media ID、Capture ID、Chapterタグが取得できる場合はグループ判定へ優先利用し、取得できない場合だけGoProファイル名規則へフォールバックして根拠と信頼度を返す。
-- DJIの試験検出はPocket機種タグまたはDJIメタデータ・ファイル名候補を用い、録画グループ化せず独立したコピー単位を返す。未知のDJIメタデータを含めMP4全体をコピーし、結合は無効とする。[対応状況](osmo-pocket-support.md)を参照する。
+- DJIの試験検出はPocket機種タグまたはDJIメタデータ・ファイル名候補を用いる。検証済みの分割連続性条件を満たすPocket 4だけを結合グループとし、その他は独立したバイトコピー単位とする。[対応状況](osmo-pocket-support.md)を参照する。
 - `original` 保存は入力を読み取り専用で開き、SHA-256照合済みの一時ファイルを同じ出力ファイルシステム上で完成名へ確定する。開始前に完成動画と元動画コピーの推定容量をOS APIで確認し、不足時は `E_DISK_FULL` とする。
 - 結合出力には先頭チャプターの `creation_time` を設定し、ffprobeで一致を検証してから完成名へ確定する。完成後にファイル更新日時を設定し、Windowsでは作成日時も設定する。未対応OSやファイルシステムでの日時設定失敗は警告とレポートへ残し、検証済みメディアを破損扱いにはしない。
 - 既定出力名と入力からの相対サブフォルダは走査時にGoバックエンドが確定し、実行時は保存済みの走査計画から復元する。日付フォルダ併用時は `日付/入力相対サブフォルダ/動画` とする。
 
 ## 4. ネイティブメディアツール
 
-ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffprobeはアプリへ同梱せず、ユーザーが画面から明示的に取得した固定版の単体バイナリをアプリ管理領域へ保存する。
+ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpeg、ffprobe、mp4-mergeはアプリへ同梱せず、ユーザーが画面から明示的に取得した固定版の単体バイナリをアプリ管理領域へ保存する。
 
 配布物は対象OSのネイティブ環境で `package:windows`、`package:macos`、`package:linux` の各Taskを実行して生成し、CIのOSマトリクスで各Taskを検証する。
 
@@ -61,6 +62,8 @@ ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffpro
 - 商用配布を想定したライセンス条件を満たす
 
 複数チャプターはFFmpegのconcat demuxerへ順番どおりに渡し、映像、音声、`gpmd`を明示的にmapして `-c copy` で多重化する。コマンドの成功だけでは完了扱いにせず、ffprobeで入力と出力の映像・音声仕様、合計時間、全パケットのSHA-256・順序・サイズを照合する。`gpmd`はさらに動画全体を覆う時間範囲と、入力に存在した主要キー（`GYRO`、`ACCL`、`GPS5`）の保持を検証する。実GoProサンプルでは、映像・音声・`gpmd`の全パケットpayload一致と主要GPMFキーの保持を確認済みである。
+
+Pocket 4分割グループは固定版mp4-merge 0.1.11へ章順で渡す。デコードせずMP4サンプルテーブルを再構築する。mp4-mergeは先頭の`tmcd`サンプルと添付MJPEGサムネイルだけを保持するため、TakeBinderは章間のタイムコード連続性を確認したうえで、そのSMPTE開始値を保持し、MP4の`stts`時間を結合映像全体へ延長する。完成名へのアトミックな変更前に、全7トラック構成、合計時間、撮影日時、HEVC・2本のAAC・`djmd`・`dbgi`の連結済みパケットSHA-256・順序・個数・総バイト数、先頭`tmcd`とMJPEGペイロードの不変性、タイムコード範囲が結合映像全体を覆うことをffprobeで検証する。
 
 ## 5. バックエンド通信仕様
 
@@ -88,7 +91,7 @@ ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffpro
 | `job.failed` | グループ処理失敗 |
 | `run.completed` | 全体処理終了 |
 | `tools.install.progress` | ツール取得のバイト進捗 |
-| `tools.install.completed` | FFmpegとffprobeの取得結果 |
+| `tools.install.completed` | FFmpeg、ffprobe、mp4-mergeの取得結果 |
 | `tools.remove.completed` | 削除成功と最新の `tools` 状態 |
 
 各メッセージは `protocolVersion`、`requestId`、`type`、`payload` を持つ。
@@ -151,5 +154,5 @@ ElectronとGoのコードは各OS／CPU向けにビルドする。FFmpegとffpro
 - 取得URL、バージョン、ファイル名、サイズ、SHA-256はGoバイナリへ固定する。サーバー上のリモートmanifestで実行時に差し替えない。
 - HTTPSのみ許可し、初回URLとリダイレクト先のホストを許可リストで検査する。
 - ダウンロードは上限サイズ付き一時ファイルへ行い、サイズとSHA-256が一致した場合だけアプリ管理領域へ確定する。
-- FFmpegとffprobeはShaka Projectの固定リリースにある単体バイナリを取得し、`-version` が成功した後に利用可能とする。インストーラーは実行しない。
+- FFmpegとffprobeはShaka Project、mp4-mergeはGyroflowの固定リリースから単体バイナリを取得する。実サイズとSHA-256を検証し、非変更の起動確認後に利用可能とする。インストーラーは実行しない。
 - 現在の対象はWindows x64、macOS x64/arm64、Linux x64/arm64である。

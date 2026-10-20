@@ -2,36 +2,31 @@
 
 ## Scope
 
-Initial Osmo Pocket, DJI Pocket 2, Osmo Pocket 3, and Osmo Pocket 4 are targets for experimental discovery and **individual-file copying and organization only**. Automatic joining of DJI recordings is not implemented. No real Pocket footage was available for this implementation; recognition across firmware versions and camera generations remains unverified.
+Osmo Pocket generations and DJI-named MP4s are discovered experimentally. TakeBinder can losslessly join a conservative subset of **Osmo Pocket 4** long-recording splits validated with real camera footage. Other Pocket generations, renamed files, and generic DJI candidates remain individual byte-for-byte copies.
 
-## Research (2026-10-18)
+## Evidence (2026-10-18)
 
-| Subject | Confirmed information | Implementation consequence |
-| --- | --- | --- |
-| Split size | DJI documents 4 GB splitting for the original Pocket / Pocket 2 and approximately 16 GB for Pocket 3 / Pocket 4 series. | File size alone does not establish a recording boundary. No size threshold or timestamp-continuity heuristic is used to join files. |
-| Naming | Pocket 3 lets users change folder and file naming rules. The manual does not specify a reliable cross-generation filename-to-recording mapping. | Names are discovery hints only. A `DJI_` name does not establish a Pocket model, capture ID, or chapter number. |
-| Video / audio | Pocket 3 documents H.264 / HEVC, Normal / HLG / D-Log M, and recording modes with separate audio files. | Copy the entire MP4 without remuxing. Sidecar audio, `.LRF`, `.SRT`, still images, and other non-MP4 files are outside this feature's scope and remain in the input. |
-| Telemetry | ExifTool's DJI parser documents DJI `djmd` / `dbgi` timed metadata and the Pocket 3 `dvtm_PP-101.proto` protocol. This does not establish a Pocket 4 metadata schema or a safe concat method. | Do not substitute GoPro `gpmd` verification for DJI telemetry verification. Byte copying retains all embedded bytes, including unknown metadata. |
+Three unedited Pocket 4 chapters from one 1 h 52 min recording were inspected and joined: two approximately 16 GiB splits and one remainder. Each input contains HEVC, two AAC tracks, `djmd`, `dbgi`, `tmcd`, and an attached MJPEG track. The format encoder is `DJI OsmoPocket4`; counters, filename timestamps, container creation times, and timecodes are continuous. Gyroflow `mp4-merge` 0.1.11 produced a 43.7 GB output with all seven tracks and the expected duration. TakeBinder compares every concatenated packet payload, order, count, and byte total for HEVC, both AAC tracks, `djmd`, and `dbgi`. mp4-merge retains the first chapter's attached MJPEG thumbnail. For `tmcd`, TakeBinder preserves the first chapter's four-byte SMPTE start payload and extends that sample's MP4 duration across the joined video after confirming chapter timecode continuity.
 
-Sources:
+This evidence covers the supplied Pocket 4 sample only. Other firmware, modes, resolutions, frame rates, HDR profiles, naming settings, and Pocket generations are not claimed compatible.
+
+Research sources:
 
 - [DJI: Osmo Action / Osmo Pocket series video split logic](https://repair.dji.com/help/content?customId=01700006948&lang=en&paperDocType=ARTICLE&re=US&spaceId=17)
-- [DJI: Pocket 3 user manual](https://dl.djicdn.com/downloads/DJI_Osmo_Pocket_3/UM/20250826/DJI_Osmo_Pocket_3_User_Manual_v1.0_en.pdf), Naming Management, Video Compression, recording modes, and color modes
-- [ExifTool: DJI parser source](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/DJI.pm), timed metadata and Pocket 3 protocol mapping
+- [DJI: Pocket 3 user manual](https://dl.djicdn.com/downloads/DJI_Osmo_Pocket_3/UM/20250826/DJI_Osmo_Pocket_3_User_Manual_v1.0_en.pdf)
+- [ExifTool DJI parser](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/DJI.pm)
+- [Gyroflow mp4-merge](https://github.com/gyroflow/mp4-merge), MIT or Apache-2.0
 
-## Discovery and safety contract
+## Discovery, grouping, and safety contract
 
-1. Inspect MP4s using the existing ffprobe path. Files without a video stream or unreadable files remain excluded.
-2. Recognize explicit Pocket model names in format or stream `model`, `camera_model`, or `com.apple.quicktime.model` tags as `osmo-pocket`. Matching ignores spaces, underscores, hyphens, and case; only the listed generations are recognized. These are conservative application matching rules, not a claim that every camera exposes these tags through ffprobe.
-3. Otherwise, a `DJI` make/manufacturer tag or the case-insensitive filename hint `DJI_[A-Z0-9_]+.MP4` produces `dji-candidate`. This includes other DJI cameras and may include renamed files. Do not label these as confirmed Pocket footage. Custom names without identifying tags cannot be recognized.
-4. Each DJI file has its own path-based identity and chapter value 1. Do not merge files with adjacent counters, equal times, generic Media/Capture IDs, or matching names in different folders. These units are files, not verified complete captures. Confidence is low and basis is `DJI file copy`.
-5. Use the existing atomic copy, collision avoidance, date folders, optional original copying, timestamp handling, and strict SHA-256 verification. No video/audio encoder or remuxer is invoked. The container's original bytes and capture timestamp remain unchanged.
-6. Group `hasGpmf` reflects actual input `gpmd` presence; absence is permitted for DJI copying. `gpmfVerification: byte-identical` denotes the existing copy verification result, not the presence of a GPMF track. Reports retain the classification, per-file decision basis, and actual GPMF-presence flag.
-7. Reject any multi-file processing unit containing a DJI classification with `E_GROUP_AMBIGUOUS`, before creating directories or copying originals. Existing GoPro joining and GPMF checks remain in force.
-8. The UI marks these rows as Copy only and explains experimental discovery, unverified recording boundaries, and the lack of automatic joining in Japanese and English.
+1. ffprobe must identify a video stream and the exact Pocket model through `model`, `camera_model`, QuickTime model, or `encoder`. The real Pocket 4 sample uses `encoder=DJI OsmoPocket4`.
+2. Automatic joining requires the exact name `DJI_YYYYMMDDhhmmss_NNNN_D.MP4`, the same directory, sequential counters, identical complete stream layouts, a preceding file of at least 15 GiB, a next filename timestamp within three seconds of the preceding media end, and SMPTE drop-frame timecode continuity within two frames. Failure of any condition starts an independent copy unit; the app never guesses across a gap.
+3. A joined unit has basis `DJI Pocket 4 split continuity` and high confidence. Generic `DJI_` names remain low-confidence `DJI file copy` units even if generic capture/chapter tags exist.
+4. `mp4-merge` is invoked directly with an argument array, never through a shell. It rewrites MP4 sample tables without decoding or encoding media. Version 0.1.11 standalone binaries, URLs, sizes, and SHA-256 values are pinned in `backend/tools.go`; installers are never executed.
+5. Output is written to a temporary file. ffprobe must confirm the complete stream layout, summed duration, and first chapter creation time. SHA-256 packet fingerprints must match the concatenated inputs for HEVC, both AAC tracks, `djmd`, and `dbgi`. The MJPEG and `tmcd` payloads must match the first chapter, and the extended `tmcd` duration must cover the joined video. Any mismatch returns `E_DJI_VERIFY`, deletes the temporary file, and does not create the final name.
+6. Single files continue through atomic byte copy. Inputs are never changed, moved, or deleted, and existing outputs are never overwritten.
+7. `gpmfVerification: all-tracks-verified` is retained in the existing protocol field for a successfully joined DJI group; it means all DJI media/data tracks and the continuous `tmcd` semantics were verified, not that DJI contains GoPro GPMF.
 
-## Verification and remaining work
+## Remaining validation
 
-Automated synthetic cases cover model names for four generations, filename candidates, unrelated videos, actual GPMF flags, adjacent files and duplicate names, generic-ID collisions, byte-preserving copies, and rejecting DJI multi-file units. Synthetic metadata is not evidence of real-camera compatibility.
-
-Before enabling DJI joining, obtain unedited consecutive split chapters and neighboring separate recordings for each generation and firmware under test. Establish recording identity, missing-chapter detection, and order from actual metadata. Verify video/audio packet payloads, all DJI telemetry/debug data and timing, color/HDR metadata, timecode, and downstream playback. Unknown or unverifiable metadata must prevent a joined output from being reported as complete.
+Collect consecutive splits and neighboring separate recordings for each additional generation, firmware, and recording mode before widening the rules. Playback interoperability should also be exercised in target editors. Unknown or unverifiable metadata must continue to prevent a joined output from being reported as complete.

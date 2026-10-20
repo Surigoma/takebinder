@@ -64,6 +64,7 @@ func scanFolder(req scanRequest, progress func(int, string)) (scanResult, error)
 
 type groupCandidate struct {
 	file       videoFile
+	probe      probeResult
 	key        string
 	basis      string
 	confidence string
@@ -151,7 +152,7 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 		if captured != modified {
 			capturedSource = "metadata.creation_time"
 		}
-		candidate := groupCandidate{key: key, basis: basis, confidence: confidence, file: videoFile{
+		candidate := groupCandidate{key: key, basis: basis, confidence: confidence, probe: probe, file: videoFile{
 			Path: path, Name: entry.Name(), Size: fileInfo.Size(),
 			Modified: modified, Captured: captured, CapturedSource: capturedSource, Duration: duration,
 			Width: width, Height: height, Chapter: chapter, HasGPMF: hasGPMF, Classification: classification,
@@ -163,6 +164,7 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 	if err != nil {
 		return scanResult{}, err
 	}
+	regroupPocket4Candidates(grouped)
 
 	groups := make([]group, 0, len(grouped))
 	for key, candidates := range grouped {
@@ -198,9 +200,6 @@ func scanFolderWithInspectorProgress(req scanRequest, inspect func(context.Conte
 func summarizeStreams(probe probeResult) []streamSummary {
 	result := make([]streamSummary, 0, len(probe.Streams))
 	for _, stream := range probe.Streams {
-		if stream.CodecType != "video" && stream.CodecType != "audio" && !strings.EqualFold(stream.CodecTagString, "gpmd") {
-			continue
-		}
 		result = append(result, streamSummary{
 			Type: stream.CodecType, Codec: stream.CodecName, CodecTag: stream.CodecTagString,
 			Profile: stream.Profile, Width: stream.Width, Height: stream.Height, PixelFormat: stream.PixelFormat,
