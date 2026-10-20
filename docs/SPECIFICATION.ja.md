@@ -13,7 +13,7 @@
 | --- | --- |
 | [製品概要](product.ja.md) | 目的、用語、対象範囲、UI、未確定事項 |
 | [機能要件](functional-requirements.ja.md) | 走査、分類、結合、並列処理、出力、エラー |
-| [Osmo Pocket / DJI対応状況](osmo-pocket-support.md) | Pocket 4分割結合の実素材検証、保守的なグループ化、コピーへのフォールバック |
+| [Osmo Pocket / DJI対応状況](osmo-pocket-support.ja.md) | Pocket 4分割結合の実素材検証、保守的なグループ化、コピーへのフォールバック |
 | [アーキテクチャ](architecture.ja.md) | Electron、Goバックエンド、外部ツール、通信仕様 |
 | [品質・テスト](quality-and-testing.ja.md) | 非機能要件、受け入れ基準、テスト方針、実装フェーズ |
 | [リリース手順](releasing.ja.md) | バージョンタグ、リリース検証、成果物、現在の署名上の制約 |

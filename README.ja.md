@@ -1,6 +1,6 @@
 # TakeBinder
 
-Osmo Pocket / DJI候補のMP4をファイル単位でコピー・日付整理する試験対応を追加しています。**DJIの分割録画は自動結合しません。** ファイル名だけでは機種を確定できず、Pocket実素材での検証も未実施です。[対応範囲・調査結果](docs/osmo-pocket-support.md)を参照してください。
+Osmo Pocket / DJIの試験対応では、実素材で検証した保守的な条件を満たすPocket 4長時間撮影の分割を、再エンコードせず結合できます。その他のDJI MP4はファイル単位でバイトコピーします。ファイル名だけで機種や録画の区切りを確定することはありません。[対応範囲・検証結果・安全規則](docs/osmo-pocket-support.ja.md)を参照してください。
 
 [English](README.md)
 
