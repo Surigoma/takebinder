@@ -96,7 +96,8 @@ When date directories and original copying are enabled, completed videos and sou
 ## 4. Implementation phases
 
 1. Technical validation: verify FFmpeg stream copying, ffprobe, and GPMF-verification methods with real GoPro footage.
-2. Go CLI: implement scanning, grouping, joining, copying, verification, and reports.
-3. Electron MVP: implement directory selection, scan results, execution, progress, and cancellation.
-4. Cross-platform distribution: assemble OS-specific binaries, sign, and package.
-5. Physical compatibility testing: verify camera generations, codecs, HDR, and long recordings.
+2. Pocket 4 validation: join unedited consecutive splits with pinned mp4-merge; compare the complete stream layout and every concatenated packet payload across HEVC, both audio tracks, and both DJI data tracks; verify that the first attached-image and `tmcd` payloads are unchanged; then confirm that the extended timecode sample covers the joined video after continuous chapter timecodes were established.
+3. Go CLI: implement scanning, grouping, joining, copying, verification, and reports.
+4. Electron MVP: implement directory selection, scan results, execution, progress, and cancellation.
+5. Cross-platform distribution: assemble OS-specific binaries, sign, and package.
+6. Physical compatibility testing: verify camera generations, codecs, HDR, and long recordings.

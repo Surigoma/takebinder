@@ -10,7 +10,7 @@ const fixture = mkdtempSync(path.join(tmpdir(), "takebinder-protocol-"));
 const tools = path.join(fixture, "managed");
 const external = path.join(fixture, "external");
 mkdirSync(external);
-for (const name of ["ffmpeg", "ffprobe"]) {
+for (const name of ["ffmpeg", "ffprobe", "mp4_merge"]) {
   const filename = process.platform === "win32" ? `${name}.exe` : name;
   mkdirSync(path.join(tools, name, "old"), { recursive: true });
   writeFileSync(path.join(tools, name, "old", filename), "managed test binary");
@@ -46,7 +46,7 @@ if (byRequest.get("version")?.payload.code !== "E_PROTOCOL") throw new Error("ve
 if (byRequest.get("unknown")?.payload.code !== "E_BAD_REQUEST") throw new Error("unknown command contract failed");
 if (byRequest.get("remove-path")?.payload.code !== "E_BAD_REQUEST") throw new Error("arbitrary removal path accepted");
 if (byRequest.get("remove")?.type !== "tools.remove.completed") throw new Error("remove command contract failed");
-for (const name of ["ffmpeg", "ffprobe"]) {
+for (const name of ["ffmpeg", "ffprobe", "mp4_merge"]) {
   const status = byRequest.get("remove")?.payload.tools[name];
   if (status?.removable !== false || status?.available !== true) throw new Error("removal did not retain external tools");
   const filename = process.platform === "win32" ? `${name}.exe` : name;

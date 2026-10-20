@@ -10,7 +10,7 @@ It does not re-encode video or audio and preserves telemetry such as gyroscope, 
 
 ## 2. Terminology
 
-Experimental Osmo Pocket / DJI support copies and organizes individual MP4 files; it does not detect complete DJI captures or join them. See [scope, research, and remaining validation](osmo-pocket-support.md). The capture terminology below describes GoPro grouping.
+Experimental Osmo Pocket / DJI support joins only conservatively identified Pocket 4 long-recording splits validated with real footage. Other DJI MP4s are copied individually. See [scope, evidence, and safety rules](osmo-pocket-support.md).
 
 | Term | Definition |
 | --- | --- |

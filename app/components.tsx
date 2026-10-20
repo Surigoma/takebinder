@@ -99,9 +99,10 @@ export function ToolsPanel({ t, tools, installing, removing, busy, error, onInst
       <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("mediaTools")}</Typography><Stack direction="row" spacing={1} sx={{ mt: 1 }}>
         <Chip label={`FFmpeg ${tools.ffmpeg ? "OK" : t("missing")}`} color={tools.ffmpeg ? "success" : "warning"} variant="outlined" />
         <Chip label={`ffprobe ${tools.ffprobe ? "OK" : t("missing")}`} color={tools.ffprobe ? "success" : "warning"} variant="outlined" />
+        <Chip label={`mp4-merge ${tools.mp4Merge ? "OK" : t("missing")}`} color={tools.mp4Merge ? "success" : "warning"} variant="outlined" />
       </Stack></Box>
       <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-        <Button data-testid="install-tools" variant="outlined" disabled={busy || installing || removing || (tools.ffmpeg && tools.ffprobe)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
+        <Button data-testid="install-tools" variant="outlined" disabled={busy || installing || removing || (tools.ffmpeg && tools.ffprobe && tools.mp4Merge)} onClick={onInstall} startIcon={installing ? <CircularProgress size={16} /> : undefined}>{t("downloadTools")}</Button>
         <Button data-testid="remove-tools" variant="outlined" color="error" disabled={busy || installing || removing || !tools.removable} onClick={onRemove} startIcon={removing ? <CircularProgress size={16} /> : undefined}>{t(removing ? "removingTools" : "removeTools")}</Button>
       </Stack>
     </Stack>
@@ -114,7 +115,7 @@ export function ToolsPanel({ t, tools, installing, removing, busy, error, onInst
 export function GroupsPanel({ t, groups, readyCount }: { t: Translate; groups: Group[]; readyCount: number }) {
   return <Paper sx={{ overflow: "hidden" }}>
     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", p: 2.5 }}><Typography variant="h6" sx={{ fontWeight: 800 }}>{t("captureGroups")}</Typography><Chip label={t("groupSummary", { total: groups.length, ready: readyCount })} /></Stack>
-    {groups.some((group) => group.basis === "DJI file copy") && <Alert severity="info" sx={{ mx: 2.5, mb: 2 }}>{t("djiCopyNotice")}</Alert>}
+    {groups.some((group) => group.files.some((file) => file.classification.startsWith("dji") || file.classification === "osmo-pocket")) && <Alert severity="info" sx={{ mx: 2.5, mb: 2 }}>{t("djiCopyNotice")}</Alert>}
     <TableContainer sx={{ maxHeight: 430 }}><Table stickyHeader size="small">
       <TableHead><TableRow><TableCell>{t("outputName")}</TableCell><TableCell>{t("chapters")}</TableCell><TableCell>{t("size")}</TableCell><TableCell>{t("status")}</TableCell><TableCell>{t("videoInfo")}</TableCell><TableCell>{t("progress")}</TableCell></TableRow></TableHead>
       <TableBody>{groups.length === 0
@@ -147,6 +148,7 @@ function GroupRow({ group, t }: { group: Group; t: Translate }) {
 function groupBasisLabel(basis: string, t: Translate): string {
   if (basis === "GoProファイル名規則") return t("basisFilename");
   if (basis === "DJI file copy") return t("basisDjiCopy");
+  if (basis === "DJI Pocket 4 split continuity") return t("basisDjiPocket4");
   return basis;
 }
 

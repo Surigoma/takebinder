@@ -140,6 +140,198 @@ func joinGroup(ctx context.Context, g group, target string, progress func(jobPro
 	return jobResult{GroupID: g.ID, Status: "completed", OutputPath: target, Warnings: applyOutputTimestamp(target, g.Files[0].Captured), OutputStreams: summarizeStreams(outputProbe), GPMFVerification: "verified"}
 }
 
+func joinPocket4Group(ctx context.Context, g group, target string, progress func(jobProgress)) jobResult {
+	mp4Merge, err := findTool("mp4_merge")
+	if err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_TOOL_MISSING", Message: "mp4_merge is not available"}
+	}
+	ffprobe, err := findTool("ffprobe")
+	if err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_TOOL_MISSING", Message: "ffprobe is not available"}
+	}
+	inputProbes := make([]probeResult, 0, len(g.Files))
+	for _, file := range g.Files {
+		probe, err := inspectFile(ctx, ffprobe, file.Path)
+		if err != nil {
+			return jobResult{GroupID: g.ID, Status: "failed", Code: "E_INPUT_UNREADABLE", Message: err.Error()}
+		}
+		if !isPocket4Probe(probe) {
+			return jobResult{GroupID: g.ID, Status: "failed", Code: "E_GROUP_AMBIGUOUS", Message: file.Name + " is not a confirmed Osmo Pocket 4 file"}
+		}
+		inputProbes = append(inputProbes, probe)
+	}
+	for index := 1; index < len(inputProbes); index++ {
+		if allStreamSignature(inputProbes[0]) != allStreamSignature(inputProbes[index]) {
+			return jobResult{GroupID: g.ID, Status: "failed", Code: "E_STREAM_MISMATCH", Message: "DJI stream layouts differ"}
+		}
+		previous := groupCandidate{file: g.Files[index-1], probe: inputProbes[index-1]}
+		current := groupCandidate{file: g.Files[index], probe: inputProbes[index]}
+		for _, candidate := range []*groupCandidate{&previous, &current} {
+			info, statErr := os.Stat(candidate.file.Path)
+			if statErr != nil {
+				return jobResult{GroupID: g.ID, Status: "failed", Code: "E_INPUT_UNREADABLE", Message: statErr.Error()}
+			}
+			candidate.file.Size = info.Size()
+			candidate.file.Duration, _ = strconv.ParseFloat(candidate.probe.Format.Duration, 64)
+		}
+		if !pocket4Continues(previous, current) {
+			return jobResult{GroupID: g.ID, Status: "failed", Code: "E_GROUP_AMBIGUOUS", Message: "Pocket 4 split continuity changed after scanning"}
+		}
+	}
+	temp, err := os.CreateTemp(filepath.Dir(target), ".takebinder-*.partial.mp4")
+	if err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_OUTPUT_UNWRITABLE", Message: err.Error()}
+	}
+	tempPath := temp.Name()
+	_ = temp.Close()
+	_ = os.Remove(tempPath)
+	defer os.Remove(tempPath)
+	args := make([]string, 0, len(g.Files)+2)
+	for _, file := range g.Files {
+		args = append(args, file.Path)
+	}
+	args = append(args, "--out", tempPath)
+	progress(jobProgress{Progress: 5})
+	command := exec.CommandContext(ctx, mp4Merge, args...)
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_JOIN", Message: err.Error()}
+	}
+	var stderr, joinLog bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Start(); err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_JOIN", Message: err.Error()}
+	}
+	scanner := bufio.NewScanner(stdout)
+	scanner.Split(scanCRLF)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		value := strings.TrimSuffix(strings.TrimPrefix(line, "Merging... "), "%")
+		if percent, parseErr := strconv.ParseFloat(value, 64); parseErr == nil && strings.HasPrefix(line, "Merging... ") {
+			progress(jobProgress{Progress: 5 + min(max(percent, 0), 100)*0.85})
+		} else if line != "" {
+			joinLog.WriteString(line + "\n")
+		}
+	}
+	if scanErr := scanner.Err(); scanErr != nil {
+		_ = command.Process.Kill()
+		_ = command.Wait()
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_JOIN", Message: scanErr.Error()}
+	}
+	if err := command.Wait(); err != nil {
+		code := "E_JOIN"
+		if errors.Is(ctx.Err(), context.Canceled) {
+			code = "E_CANCELLED"
+		}
+		return jobResult{GroupID: g.ID, Status: "failed", Code: code, Message: strings.TrimSpace(joinLog.String() + stderr.String())}
+	}
+	if err := extendMergedTimecode(tempPath, g.Files); err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_DJI_VERIFY", Message: err.Error()}
+	}
+	progress(jobProgress{Progress: 90})
+	outputProbe, err := inspectFile(ctx, ffprobe, tempPath)
+	if err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_DJI_VERIFY", Message: err.Error()}
+	}
+	if allStreamSignature(inputProbes[0]) != allStreamSignature(outputProbe) {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_DJI_VERIFY", Message: "output DJI stream layout differs from input"}
+	}
+	if !creationTimeMatches(outputProbe, g.Files[0].Captured) || !durationMatches(inputProbes, outputProbe) {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_DJI_VERIFY", Message: "output DJI duration or creation time differs from inputs"}
+	}
+	if err := verifyAllPacketPayloads(ctx, ffprobe, g.Files, inputProbes, tempPath, outputProbe); err != nil {
+		code := "E_DJI_VERIFY"
+		if errors.Is(ctx.Err(), context.Canceled) {
+			code = "E_CANCELLED"
+		}
+		return jobResult{GroupID: g.ID, Status: "failed", Code: code, Message: err.Error()}
+	}
+	if err := os.Rename(tempPath, target); err != nil {
+		return jobResult{GroupID: g.ID, Status: "failed", Code: "E_OUTPUT_UNWRITABLE", Message: err.Error()}
+	}
+	progress(jobProgress{Progress: 100})
+	return jobResult{GroupID: g.ID, Status: "completed", OutputPath: target, Warnings: applyOutputTimestamp(target, g.Files[0].Captured), OutputStreams: summarizeStreams(outputProbe), GPMFVerification: "all-tracks-verified"}
+}
+
+func scanCRLF(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	for index, value := range data {
+		if value == '\r' || value == '\n' {
+			advance = index + 1
+			for advance < len(data) && (data[advance] == '\r' || data[advance] == '\n') {
+				advance++
+			}
+			return advance, data[:index], nil
+		}
+	}
+	if atEOF && len(data) > 0 {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
+}
+
+func verifyAllPacketPayloads(ctx context.Context, ffprobe string, files []videoFile, inputProbes []probeResult, outputPath string, outputProbe probeResult) error {
+	inputLayout := inputProbes[0].Streams
+	outputLayout := outputProbe.Streams
+	if allStreamSignature(inputProbes[0]) != allStreamSignature(outputProbe) {
+		return errors.New("output stream layout differs from input")
+	}
+	expected := newPacketFingerprints(len(inputLayout))
+	firstChapter := newPacketFingerprints(len(inputLayout))
+	for index, file := range files {
+		if allStreamSignature(inputProbes[index]) != allStreamSignature(inputProbes[0]) {
+			return fmt.Errorf("%s stream layout differs", file.Name)
+		}
+		if err := addPacketFingerprints(ctx, ffprobe, file.Path, inputProbes[index].Streams, expected); err != nil {
+			return err
+		}
+		if index == 0 {
+			firstChapter = snapshotPacketFingerprints(expected)
+		}
+	}
+	actual := newPacketFingerprints(len(outputLayout))
+	if err := addPacketFingerprints(ctx, ffprobe, outputPath, outputLayout, actual); err != nil {
+		return err
+	}
+	for index := range expected {
+		wanted := expected[index]
+		if firstChapterOnlyPocketStream(inputLayout[index]) {
+			wanted = firstChapter[index]
+		}
+		if !samePacketFingerprint(wanted, actual[index]) {
+			return fmt.Errorf("%s packet payload mismatch (input count=%d bytes=%d hash=%x, output count=%d bytes=%d hash=%x)",
+				streamLabel(inputLayout[index]), wanted.count, wanted.bytes, packetFingerprintDigest(wanted),
+				actual[index].count, actual[index].bytes, packetFingerprintDigest(actual[index]))
+		}
+	}
+	if !timecodeCoversVideo(outputLayout, actual) {
+		return errors.New("tmcd time range does not cover the joined video")
+	}
+	return nil
+}
+
+func firstChapterOnlyPocketStream(stream probeStream) bool {
+	return strings.EqualFold(stream.CodecTagString, "tmcd") ||
+		(stream.CodecType == "video" && strings.EqualFold(stream.CodecName, "mjpeg"))
+}
+
+func timecodeCoversVideo(layout []probeStream, fingerprints []packetFingerprint) bool {
+	videoEnd, timecodeStart, timecodeEnd := math.Inf(-1), math.Inf(1), math.Inf(-1)
+	for index, stream := range layout {
+		fingerprint := fingerprints[index]
+		if !fingerprint.hasTiming {
+			continue
+		}
+		if stream.CodecType == "video" && !strings.EqualFold(stream.CodecName, "mjpeg") {
+			videoEnd = max(videoEnd, fingerprint.endPTS)
+		}
+		if strings.EqualFold(stream.CodecTagString, "tmcd") {
+			timecodeStart = min(timecodeStart, fingerprint.firstPTS)
+			timecodeEnd = max(timecodeEnd, fingerprint.endPTS)
+		}
+	}
+	return !math.IsInf(videoEnd, -1) && !math.IsInf(timecodeStart, 1) && timecodeStart <= 0.01 && timecodeEnd+0.05 >= videoEnd
+}
+
 func creationTimeMatches(probe probeResult, captured string) bool {
 	expected, err := time.Parse(time.RFC3339Nano, captured)
 	if err != nil {
@@ -156,6 +348,7 @@ func creationTimeMatches(probe probeResult, captured string) bool {
 
 type packetFingerprint struct {
 	hash      hash.Hash
+	digest    []byte
 	count     int64
 	bytes     int64
 	firstPTS  float64
@@ -273,7 +466,14 @@ func hashAnnexBStream(ctx context.Context, ffmpeg, path string, streamIndex int,
 }
 
 func samePacketFingerprint(expected, actual packetFingerprint) bool {
-	return expected.count > 0 && expected.count == actual.count && expected.bytes == actual.bytes && bytes.Equal(expected.hash.Sum(nil), actual.hash.Sum(nil))
+	return expected.count > 0 && expected.count == actual.count && expected.bytes == actual.bytes && bytes.Equal(packetFingerprintDigest(expected), packetFingerprintDigest(actual))
+}
+
+func packetFingerprintDigest(fingerprint packetFingerprint) []byte {
+	if fingerprint.digest != nil {
+		return fingerprint.digest
+	}
+	return fingerprint.hash.Sum(nil)
 }
 
 func mappedStreams(probe probeResult) []probeStream {
@@ -298,6 +498,19 @@ func newPacketFingerprints(count int) []packetFingerprint {
 	result := make([]packetFingerprint, count)
 	for index := range result {
 		result[index].hash = sha256.New()
+	}
+	return result
+}
+
+func snapshotPacketFingerprints(source []packetFingerprint) []packetFingerprint {
+	result := newPacketFingerprints(len(source))
+	for index, fingerprint := range source {
+		result[index].digest = append([]byte(nil), fingerprint.hash.Sum(nil)...)
+		result[index].count = fingerprint.count
+		result[index].bytes = fingerprint.bytes
+		result[index].firstPTS = fingerprint.firstPTS
+		result[index].endPTS = fingerprint.endPTS
+		result[index].hasTiming = fingerprint.hasTiming
 	}
 	return result
 }

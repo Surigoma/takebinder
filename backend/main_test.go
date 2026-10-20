@@ -53,6 +53,9 @@ func TestStatusToolContractUsesFFmpeg(t *testing.T) {
 	if _, ok := got.Payload.Tools["ffmpeg"]; !ok {
 		t.Fatal("status response has no ffmpeg tool")
 	}
+	if _, ok := got.Payload.Tools["mp4_merge"]; !ok {
+		t.Fatal("status response has no mp4_merge tool")
+	}
 	if _, ok := got.Payload.Tools["mp4box"]; ok {
 		t.Fatal("status response still exposes mp4box")
 	}

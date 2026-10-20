@@ -28,7 +28,7 @@ export function App() {
   const [installing, setInstalling] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [toolError, setToolError] = useState("");
-  const [tools, setTools] = useState({ ffmpeg: false, ffprobe: false, removable: false, label: t("checkingTools"), progress: 0 });
+  const [tools, setTools] = useState({ ffmpeg: false, ffprobe: false, mp4Merge: false, removable: false, label: t("checkingTools"), progress: 0 });
   const [logs, setLogs] = useState<string[]>([]);
   const [scanProgress, setScanProgress] = useState("");
   const readyGroups = useMemo(() => groups.filter((group) => group.status === "ready"), [groups]);
@@ -59,7 +59,8 @@ export function App() {
           const state = record(payload.tools);
           const ffmpeg = record(state.ffmpeg).available === true;
           const ffprobe = record(state.ffprobe).available === true;
-          setTools({ ffmpeg, ffprobe, removable: record(state.ffmpeg).removable === true || record(state.ffprobe).removable === true, progress: 0, label: `FFmpeg ${ffmpeg ? "OK" : t("missing")} / ffprobe ${ffprobe ? "OK" : t("missing")}` });
+          const mp4Merge = record(state.mp4_merge).available === true;
+          setTools({ ffmpeg, ffprobe, mp4Merge, removable: record(state.ffmpeg).removable === true || record(state.ffprobe).removable === true || record(state.mp4_merge).removable === true, progress: 0, label: `FFmpeg ${ffmpeg ? "OK" : t("missing")} / ffprobe ${ffprobe ? "OK" : t("missing")} / mp4-merge ${mp4Merge ? "OK" : t("missing")}` });
           break;
         }
         case "tools.install.progress": {
@@ -72,8 +73,10 @@ export function App() {
           const installed = record(payload.tools);
           const ffmpeg = record(installed.ffmpeg);
           const ffprobe = record(installed.ffprobe);
+          const mp4Merge = record(installed.mp4_merge);
           appendLog(`FFmpeg: ${ffmpeg.available === true ? t("available") : t("unavailable")}`);
           appendLog(`ffprobe: ${ffprobe.available === true ? t("available") : t("unavailable")}`);
+          appendLog(`mp4-merge: ${mp4Merge.available === true ? t("available") : t("unavailable")}`);
           setInstalling(false);
           void api.command({ type: "status", payload: {} });
           break;

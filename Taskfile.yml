@@ -39,7 +39,7 @@ tasks:
       - node scripts/test-protocol.mjs
 
   test:pocket-ui:
-    desc: Verify DJI copy-only rows and language switching (run install:electron first)
+    desc: Verify DJI support rows and language switching (run install:electron first)
     deps: [build:ui]
     cmds:
       - node scripts/test-pocket-ui.cjs

@@ -20,7 +20,7 @@ func TestRemoveManagedTools(t *testing.T) {
 			if layout == "unconfigured" {
 				t.Setenv(toolsDirectoryEnvironment, "")
 			}
-			for _, name := range []string{"ffmpeg/old/ffmpeg.exe", "ffprobe/current/ffprobe", "ffprobe/current/ffprobe.partial", "notes.txt", "videos/source.mp4"} {
+			for _, name := range []string{"ffmpeg/old/ffmpeg.exe", "ffprobe/current/ffprobe", "ffprobe/current/ffprobe.partial", "mp4_merge/current/mp4_merge.exe", "notes.txt", "videos/source.mp4"} {
 				path := filepath.Join(dir, filepath.FromSlash(name))
 				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 					t.Fatal(err)
@@ -39,7 +39,7 @@ func TestRemoveManagedTools(t *testing.T) {
 				}
 			}
 			if layout == "versions and partials" {
-				for _, name := range []string{"ffmpeg", "ffprobe"} {
+				for _, name := range []string{"ffmpeg", "ffprobe", "mp4_merge"} {
 					if _, err := os.Lstat(filepath.Join(dir, name)); !os.IsNotExist(err) {
 						t.Fatalf("tool remains: %s: %v", name, err)
 					}
