@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/Surigoma/takebinder/compare/v0.4.0...v0.4.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* patch Electron, Node and Go security dependencies ([#39](https://github.com/Surigoma/takebinder/issues/39)) ([130588e](https://github.com/Surigoma/takebinder/commit/130588e577f88d8a650b49aaa389a311a3069ecb))
+
 ## [0.4.0](https://github.com/Surigoma/takebinder/compare/v0.3.0...v0.4.0) (2026-10-20)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "takebinder",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Lossless GoPro chapter joiner with GPMF preservation",
   "main": "dist/main.js",
