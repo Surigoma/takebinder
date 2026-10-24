@@ -51,8 +51,9 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.1
-          cache: yarn
-          cache-dependency-path: yarn.lock
+          # Yarn 4 via packageManager+corepack: setup-node cache:yarn invokes global Yarn 1 and fails.
+          # Keep package-manager-cache off; Go cache + setup-task still cut measured setup time.
+          package-manager-cache: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: backend/go.mod
