@@ -18,12 +18,12 @@
     "@emotion/styled": "11.14.1",
     "@mui/material": "9.5.0",
     "i18next": "26.3.6",
-    "react": "19.2.8",
+    "react": "19.3.1",
     "react-dom": "19.2.8",
     "react-i18next": "17.0.16"
   },
   "devDependencies": {
-    "@types/react": "19.2.18",
+    "@types/react": "19.3.0",
     "@types/react-dom": "19.2.7",
     "electron": "44.9.1",
     "typescript": "7.0.2",
