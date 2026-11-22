@@ -1026,15 +1026,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:26.3.6":
-  version: 26.3.6
-  resolution: "i18next@npm:26.3.6"
+"i18next@npm:27.1.2":
+  version: 27.1.2
+  resolution: "i18next@npm:27.1.2"
   peerDependencies:
     typescript: ^5 || ^6 || ^7
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/5920ac8fb6b647a2bdd439d121de04e5297246e52c4d95d13f5faae0824fd45b2faeb66038bcd61fc62362daa815f9c32fb992d6faa3787607d1dfe768e9a8b1
+  checksum: 10c0/0e00683d816db2c6c4c4d6151d8ac9d1f0be79b25c7562689ba9690fcb445319c69a6f411806f27b62c552fe5a2cbd047974e301172bb0e51c1a6ffa590e3586
   languageName: node
   linkType: hard
 
@@ -1616,7 +1616,7 @@ __metadata:
     "@types/react": "npm:19.3.0"
     "@types/react-dom": "npm:19.3.0"
     electron: "npm:45.3.2"
-    i18next: "npm:26.3.6"
+    i18next: "npm:27.1.2"
     react: "npm:19.3.1"
     react-dom: "npm:19.3.1"
     react-i18next: "npm:18.0.1"
